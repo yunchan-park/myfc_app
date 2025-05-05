@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:myfc_app/config/routes.dart';
 import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
@@ -165,6 +164,8 @@ class _PlayerListScreenState extends State<PlayerListScreen> {
     
     try {
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
       if (teamId != null) {
         // 신규 선수 등록
         await _apiService.createPlayer(
@@ -172,6 +173,7 @@ class _PlayerListScreenState extends State<PlayerListScreen> {
           int.parse(_numberController.text.trim()),
           _positionController.text.trim(),
           teamId,
+          token,
         );
         
         // 모달 닫기
@@ -211,55 +213,48 @@ class _PlayerListScreenState extends State<PlayerListScreen> {
   }
 
   Future<void> _loadPlayers() async {
-    if (!mounted) return;
-    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     
     try {
-      // 캐시에서 먼저 데이터 로드
+      // 먼저 캐시된 플레이어 데이터 확인
       final cachedPlayers = await _storageService.getCachedPlayers();
-      
-      if (cachedPlayers != null && cachedPlayers.isNotEmpty) {
-        if (mounted) {
-          setState(() {
-            _players = cachedPlayers;
-            _isLoading = false;
-          });
-        }
+      if (cachedPlayers.isNotEmpty) {
+        setState(() {
+          _players = cachedPlayers;
+        });
       }
       
-      // API에서 데이터 로드
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
       
       if (teamId != null) {
-        final players = await _apiService.getTeamPlayers(teamId);
+        final players = await _apiService.getTeamPlayers(teamId, token);
         
-        // 캐시 업데이트
+        // 새로 가져온 데이터 캐싱
         await _storageService.cachePlayers(players);
         
-        if (mounted) {
-          setState(() {
-            _players = players;
+        setState(() {
+          _players = players;
+        });
+      } else {
+        setState(() {
+          _errorMessage = '팀 정보를 찾을 수 없습니다.';
+          if (_players.isEmpty) {
             _isLoading = false;
-          });
-          
-          // 데이터가 없는 경우도 명시적으로 처리
-          if (players.isEmpty) {
-            setState(() {
-              _players = [];
-              _isLoading = false;
-            });
           }
-        }
+        });
       }
     } catch (e) {
+      setState(() {
+        _errorMessage = '데이터를 불러오는데 실패했습니다.';
+      });
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '선수 목록을 불러오는 데 실패했습니다.';
         });
       }
     }

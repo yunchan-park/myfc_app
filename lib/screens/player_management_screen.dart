@@ -4,20 +4,17 @@ import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
-import 'package:myfc_app/utils/validators.dart';
 import 'package:myfc_app/utils/helpers.dart';
 
-// GlobalKey를 사용하여 State에 외부에서 접근할 수 있도록 설정
-final playerManagementScreenKey = GlobalKey<_PlayerManagementScreenState>();
-
+// State 클래스를 외부에서 접근할 수 있도록 export
 class PlayerManagementScreen extends StatefulWidget {
   const PlayerManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<PlayerManagementScreen> createState() => _PlayerManagementScreenState();
+  PlayerManagementScreenState createState() => PlayerManagementScreenState();
 }
 
-class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
+class PlayerManagementScreenState extends State<PlayerManagementScreen> {
   // 서비스 초기화
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
@@ -33,8 +30,12 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
   List<Player> _players = [];
   bool _isLoading = true;
   bool _isSubmitting = false;
-  Player? _selectedPlayer;
   
+  // 홈 화면에서 플로팅 버튼 클릭 시 호출되는 메서드
+  void showAddPlayerModal() {
+    _showPlayerModal();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -59,8 +60,6 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
   Future<void> _loadPlayers() async {
     if (!mounted) return;
     
-    print('PlayerManagementScreen: 데이터 로딩 시작');
-    
     setState(() {
       _isLoading = true;
     });
@@ -68,7 +67,7 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
     try {
       // 팀 ID 가져오기
       final teamId = await _authService.getTeamId();
-      print('PlayerManagementScreen: teamId - $teamId');
+      final token = await _authService.getToken();
       
       if (teamId == null) {
         if (mounted) {
@@ -81,8 +80,7 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
       }
       
       // API에서 선수 목록 가져오기
-      final players = await _apiService.getTeamPlayers(teamId);
-      print('PlayerManagementScreen: API에서 ${players.length}명의 선수 데이터 로드됨');
+      final players = await _apiService.getTeamPlayers(teamId, token);
       
       // 캐시 업데이트
       await _storageService.cachePlayers(players);
@@ -95,33 +93,22 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
           _players = List<Player>.from(players); // 복사본 생성하여 안전하게 할당
           _isLoading = false;
         });
-        
-        // 디버깅용 - 선수 정보 로그 출력
-        for (var player in _players) {
-          print('선수: ${player.name}, 번호: ${player.number}, 포지션: ${player.position}');
-        }
       }
     } catch (e) {
-      print('PlayerManagementScreen: 데이터 로딩 오류 - $e');
-      
       // 캐시에서 데이터 로드 시도
       try {
         final cachedPlayers = await _storageService.getCachedPlayers();
-        if (cachedPlayers != null && cachedPlayers.isNotEmpty && mounted) {
+        if (cachedPlayers.isNotEmpty && mounted) {
           cachedPlayers.sort((a, b) => a.number.compareTo(b.number));
           setState(() {
             _players = List<Player>.from(cachedPlayers);
             _isLoading = false;
           });
-          
-          print('PlayerManagementScreen: 캐시에서 ${_players.length}명의 선수 데이터 로드됨');
         } else if (mounted) {
           setState(() {
             _players = [];
             _isLoading = false;
           });
-          
-          print('PlayerManagementScreen: 캐시에 데이터 없음');
         }
       } catch (_) {
         if (mounted) {
@@ -129,8 +116,6 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
             _players = [];
             _isLoading = false;
           });
-          
-          print('PlayerManagementScreen: 캐시 로드 실패');
         }
       }
     }
@@ -259,6 +244,8 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
     
     try {
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
       if (teamId != null) {
         if (player == null) {
           // 신규 선수 등록
@@ -267,6 +254,7 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
             int.parse(_numberController.text.trim()),
             _positionController.text.trim(),
             teamId,
+            token,
           );
         } else {
           // 선수 정보 수정
@@ -277,6 +265,7 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
               'number': int.parse(_numberController.text.trim()),
               'position': _positionController.text.trim(),
             },
+            token,
           );
         }
         
@@ -335,7 +324,8 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
     
     if (confirmed == true) {
       try {
-        await _apiService.deletePlayer(player.id);
+        final token = await _authService.getToken();
+        await _apiService.deletePlayer(player.id, token);
         
         if (mounted) {
           await _loadPlayers();
@@ -352,12 +342,6 @@ class _PlayerManagementScreenState extends State<PlayerManagementScreen> {
         }
       }
     }
-  }
-  
-  // 홈 화면에서 플로팅 버튼 클릭 시 호출되는 메서드
-  void showAddPlayerModal() {
-    print('showAddPlayerModal 호출됨');
-    _showPlayerModal();
   }
   
   void _confirmDeletePlayer(Player player) {

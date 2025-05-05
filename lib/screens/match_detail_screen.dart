@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myfc_app/models/match.dart';
 import 'package:myfc_app/services/api_service.dart';
+import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
 import 'package:myfc_app/widgets/widgets.dart';
 
@@ -15,6 +16,7 @@ class MatchDetailScreen extends StatefulWidget {
 
 class _MatchDetailScreenState extends State<MatchDetailScreen> with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
   
   Match? _match;
   bool _isLoading = true;
@@ -24,7 +26,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with SingleTicker
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadMatchDetail();
+    _loadMatchDetails();
   }
   
   @override
@@ -33,17 +35,21 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with SingleTicker
     super.dispose();
   }
   
-  Future<void> _loadMatchDetail() async {
+  Future<void> _loadMatchDetails() async {
     setState(() {
       _isLoading = true;
     });
     
     try {
-      final match = await _apiService.getMatchDetail(widget.matchId);
+      final token = await _authService.getToken();
+      final match = await _apiService.getMatchDetail(widget.matchId, token);
       
-      setState(() {
-        _match = match;
-      });
+      if (mounted) {
+        setState(() {
+          _match = match;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         Helpers.showSnackBar(
@@ -51,12 +57,6 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with SingleTicker
           '경기 정보를 불러오는 데 실패했습니다.',
           isError: true,
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }

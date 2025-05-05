@@ -15,10 +15,10 @@ class TeamProfileScreen extends StatefulWidget {
   const TeamProfileScreen({Key? key}) : super(key: key);
 
   @override
-  State<TeamProfileScreen> createState() => _TeamProfileScreenState();
+  State<TeamProfileScreen> createState() => TeamProfileScreenState();
 }
 
-class _TeamProfileScreenState extends State<TeamProfileScreen> {
+class TeamProfileScreenState extends State<TeamProfileScreen> {
   final ApiService _apiService = ApiService();
   final AuthService _authService = AuthService();
   final StorageService _storageService = StorageService();
@@ -28,6 +28,11 @@ class _TeamProfileScreenState extends State<TeamProfileScreen> {
   List<Player> _players = [];
   bool _isLoading = true;
   bool _isImageLoading = false;
+  bool _hasError = false;
+  
+  // 외부에서 접근 가능한 메서드들
+  Team? get team => _team;
+  List<Player> get players => _players;
   
   @override
   void initState() {
@@ -38,6 +43,7 @@ class _TeamProfileScreenState extends State<TeamProfileScreen> {
   Future<void> _loadTeam() async {
     setState(() {
       _isLoading = true;
+      _hasError = false;
     });
     
     try {
@@ -51,7 +57,7 @@ class _TeamProfileScreenState extends State<TeamProfileScreen> {
         });
       }
       
-      if (cachedPlayers != null) {
+      if (cachedPlayers.isNotEmpty) {
         setState(() {
           _players = cachedPlayers;
         });
@@ -59,18 +65,42 @@ class _TeamProfileScreenState extends State<TeamProfileScreen> {
       
       // Load from API
       final teamId = await _authService.getTeamId();
-      if (teamId != null) {
-        final team = await _apiService.getTeam(teamId);
-        final players = await _apiService.getTeamPlayers(teamId);
-        
-        // Update cache
-        await _storageService.cacheTeam(team);
-        await _storageService.cachePlayers(players);
-        
-        setState(() {
-          _team = team;
-          _players = players;
-        });
+      final token = await _authService.getToken();
+      
+      if (teamId != null && token != null) {
+        try {
+          final team = await _apiService.getTeam(teamId, token);
+          final players = await _apiService.getTeamPlayers(teamId, token);
+          
+          // Update cache
+          await _storageService.cacheTeam(team);
+          await _storageService.cachePlayers(players);
+          
+          setState(() {
+            _team = team;
+            _players = players;
+            _isLoading = false;
+          });
+        } catch (e) {
+          if (mounted) {
+            Helpers.showSnackBar(
+              context,
+              '데이터를 불러오는 데 실패했습니다.',
+              isError: true,
+            );
+            setState(() {
+              _hasError = true;
+              _isLoading = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -79,14 +109,25 @@ class _TeamProfileScreenState extends State<TeamProfileScreen> {
           '데이터를 불러오는 데 실패했습니다.',
           isError: true,
         );
-      }
-    } finally {
-      if (mounted) {
         setState(() {
+          _hasError = true;
           _isLoading = false;
         });
       }
     }
+  }
+  
+  // 외부에서 Team 데이터를 강제로 다시 로드하는 메서드
+  Future<void> refreshTeamData() async {
+    await _loadTeam();
+  }
+  
+  // 외부에서 접근 가능한 Team 데이터 가져오기 메서드
+  Future<Team?> getTeam() async {
+    if (_team == null) {
+      await _loadTeam();
+    }
+    return _team;
   }
   
   Future<void> _pickImage() async {
@@ -101,8 +142,9 @@ class _TeamProfileScreenState extends State<TeamProfileScreen> {
       });
       
       try {
+        final token = await _authService.getToken();
         final imageFile = File(pickedFile.path);
-        await _apiService.uploadTeamImage(_team!.id, imageFile);
+        await _apiService.uploadTeamImage(_team!.id, imageFile, token);
         await _loadTeam(); // Reload team to get new image URL
       } catch (e) {
         if (mounted) {
@@ -130,7 +172,7 @@ class _TeamProfileScreenState extends State<TeamProfileScreen> {
       );
     }
     
-    if (_team == null) {
+    if (_team == null || _hasError) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

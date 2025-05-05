@@ -53,32 +53,16 @@ class _SplashScreenState extends State<SplashScreen> {
         _passwordController.text.trim(),
       );
 
-      final token = loginResponse['access_token'] as String;
-      int teamId;
+      final accessToken = loginResponse['access_token'] as String;
+      var teamIdStr = '';
       
       // API가 직접 team_id를 반환하는지 확인
       if (loginResponse.containsKey('team_id')) {
-        teamId = loginResponse['team_id'] as int;
-      } 
-      // JWT 토큰에서 추출한 데이터에서 확인
-      else if (loginResponse.containsKey('token_data') && 
-              loginResponse['token_data'] is Map &&
-              (loginResponse['token_data'] as Map).containsKey('team_id')) {
-        final tokenTeamId = loginResponse['token_data']['team_id'];
-        if (tokenTeamId is int) {
-          teamId = tokenTeamId;
-        } else if (tokenTeamId is String) {
-          teamId = int.tryParse(tokenTeamId) ?? 0;
-        } else {
-          // 팀 ID를 찾을 수 없는 경우
-          throw Exception("Failed to extract team ID from token");
-        }
-      } else {
-        // 위 방법으로도 팀 ID를 찾을 수 없는 경우
-        throw Exception("Failed to extract team ID from response");
+        final teamId = loginResponse['team_id'];
+        teamIdStr = teamId.toString();
       }
 
-      await _authService.saveAuthData(token, teamId);
+      await _authService.saveAuthData(accessToken, teamIdStr);
 
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
@@ -90,7 +74,6 @@ class _SplashScreenState extends State<SplashScreen> {
           '로그인에 실패했습니다. 구단 이름과 비밀번호를 확인해주세요.',
           isError: true,
         );
-        print('Login error: $e');
       }
     } finally {
       if (mounted) {

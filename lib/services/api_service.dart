@@ -5,33 +5,54 @@ import 'package:http/http.dart' as http;
 import 'package:myfc_app/models/match.dart';
 import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/models/team.dart';
-import 'package:myfc_app/services/auth_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost:8000';
-  final AuthService _authService = AuthService();
-
+  
   // Helper method to get headers with token
-  Future<Map<String, String>> _getHeaders({bool isAuth = true}) async {
+  Map<String, String> _getAuthHeaders(String? token) {
     Map<String, String> headers = {
       'Content-Type': 'application/json',
     };
 
-    if (isAuth) {
-      final token = await _authService.getToken();
-      if (token != null) {
-        headers['Authorization'] = 'Bearer $token';
-      }
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
     }
 
     return headers;
+  }
+
+  // 로그인 메소드 구현
+  Future<Map<String, dynamic>?> login(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'token': data['access_token'],
+          'teamId': data['team_id'],
+        };
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
   }
 
   // Team APIs
   Future<Team> createTeam(String name, String description, String type, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/teams/create'),
-      headers: await _getHeaders(isAuth: false),
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name,
         'description': description,
@@ -50,7 +71,7 @@ class ApiService {
   Future<Map<String, dynamic>> loginTeam(String name, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/teams/login'),
-      headers: await _getHeaders(isAuth: false),
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name,
         'description': '', // Required by API but not used
@@ -88,10 +109,11 @@ class ApiService {
     }
   }
 
-  Future<Team> getTeam(int teamId) async {
+  // 토큰을 필요로 하는 메소드들은 모두 외부에서 토큰을 전달받도록 수정
+  Future<Team> getTeam(int teamId, String? token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/teams/$teamId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
     );
 
     if (response.statusCode == 200) {
@@ -101,10 +123,10 @@ class ApiService {
     }
   }
 
-  Future<Team> updateTeam(int teamId, Map<String, dynamic> data) async {
+  Future<Team> updateTeam(int teamId, Map<String, dynamic> data, String? token) async {
     final response = await http.put(
       Uri.parse('$baseUrl/teams/$teamId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
       body: jsonEncode(data),
     );
 
@@ -115,10 +137,10 @@ class ApiService {
     }
   }
 
-  Future<void> deleteTeam(int teamId) async {
+  Future<void> deleteTeam(int teamId, String? token) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/teams/$teamId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
     );
 
     if (response.statusCode != 200) {
@@ -126,15 +148,16 @@ class ApiService {
     }
   }
 
-  Future<String> uploadTeamLogo(int teamId, File file) async {
+  Future<String> uploadTeamLogo(int teamId, File file, String? token) async {
     var request = http.MultipartRequest(
       'POST',
       Uri.parse('$baseUrl/teams/upload-logo'),
     );
 
     // Add token to headers
-    final token = await _authService.getToken();
-    request.headers['Authorization'] = 'Bearer $token';
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
 
     // Add team_id as field
     request.fields['team_id'] = teamId.toString();
@@ -154,15 +177,16 @@ class ApiService {
     }
   }
 
-  Future<String> uploadTeamImage(int teamId, File file) async {
+  Future<String> uploadTeamImage(int teamId, File file, String? token) async {
     var request = http.MultipartRequest(
       'POST',
       Uri.parse('$baseUrl/teams/upload-image'),
     );
 
     // Add token to headers
-    final token = await _authService.getToken();
-    request.headers['Authorization'] = 'Bearer $token';
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
 
     // Add team_id as field
     request.fields['team_id'] = teamId.toString();
@@ -183,10 +207,10 @@ class ApiService {
   }
 
   // Player APIs
-  Future<Player> createPlayer(String name, int number, String position, int teamId) async {
+  Future<Player> createPlayer(String name, int number, String position, int teamId, String? token) async {
     final response = await http.post(
       Uri.parse('$baseUrl/players/create'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
       body: jsonEncode({
         'name': name,
         'number': number,
@@ -202,34 +226,29 @@ class ApiService {
     }
   }
 
-  Future<List<Player>> getTeamPlayers(int teamId) async {
-    print('ApiService: getTeamPlayers 메서드 호출됨 - teamId: $teamId');
+  Future<List<Player>> getTeamPlayers(int teamId, String? token) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/players/team/$teamId'),
-        headers: await _getHeaders(),
+        headers: _getAuthHeaders(token),
       );
-      print('ApiService: getTeamPlayers 응답 코드 - ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         final players = data.map((json) => Player.fromJson(json)).toList();
-        print('ApiService: getTeamPlayers 성공 - ${players.length}명의 선수 데이터 반환');
         return players;
       } else {
-        print('ApiService: getTeamPlayers 실패 - ${response.statusCode}');
         throw Exception('Failed to load players');
       }
     } catch (e) {
-      print('ApiService: getTeamPlayers 예외 발생 - $e');
       throw Exception('Network error when loading players: $e');
     }
   }
 
-  Future<Player> updatePlayer(int playerId, Map<String, dynamic> data) async {
+  Future<Player> updatePlayer(int playerId, Map<String, dynamic> data, String? token) async {
     final response = await http.put(
       Uri.parse('$baseUrl/players/$playerId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
       body: jsonEncode(data),
     );
 
@@ -240,10 +259,10 @@ class ApiService {
     }
   }
 
-  Future<void> deletePlayer(int playerId) async {
+  Future<void> deletePlayer(int playerId, String? token) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/players/$playerId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
     );
 
     if (response.statusCode != 200) {
@@ -257,11 +276,12 @@ class ApiService {
     String opponent, 
     String score, 
     int teamId, 
-    List<int> playerIds
+    List<int> playerIds,
+    String? token
   ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/matches/create'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
       body: jsonEncode({
         'date': date.toIso8601String(),
         'opponent': opponent,
@@ -278,10 +298,10 @@ class ApiService {
     }
   }
 
-  Future<List<Match>> getTeamMatches(int teamId) async {
+  Future<List<Match>> getTeamMatches(int teamId, String? token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/matches/team/$teamId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
     );
 
     if (response.statusCode == 200) {
@@ -292,10 +312,10 @@ class ApiService {
     }
   }
 
-  Future<Match> getMatchDetail(int matchId) async {
+  Future<Match> getMatchDetail(int matchId, String? token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/matches/$matchId/detail'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
     );
 
     if (response.statusCode == 200) {
@@ -305,10 +325,10 @@ class ApiService {
     }
   }
 
-  Future<Match> updateMatch(int matchId, Map<String, dynamic> data) async {
+  Future<Match> updateMatch(int matchId, Map<String, dynamic> data, String? token) async {
     final response = await http.put(
       Uri.parse('$baseUrl/matches/$matchId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
       body: jsonEncode(data),
     );
 
@@ -319,10 +339,10 @@ class ApiService {
     }
   }
 
-  Future<void> deleteMatch(int matchId) async {
+  Future<void> deleteMatch(int matchId, String? token) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/matches/$matchId'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
     );
 
     if (response.statusCode != 200) {
@@ -330,10 +350,10 @@ class ApiService {
     }
   }
 
-  Future<ModelGoal> addGoal(int matchId, int playerId, int? assistPlayerId, int quarter) async {
+  Future<ModelGoal> addGoal(int matchId, int playerId, int? assistPlayerId, int quarter, String? token) async {
     final response = await http.post(
       Uri.parse('$baseUrl/matches/$matchId/goals'),
-      headers: await _getHeaders(),
+      headers: _getAuthHeaders(token),
       body: jsonEncode({
         'match_id': matchId,
         'player_id': playerId,

@@ -37,7 +37,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       // Try to get data from cache first
       final cachedMatches = await _storageService.getCachedMatches();
       
-      if (cachedMatches != null) {
+      if (cachedMatches.isNotEmpty) {
         setState(() {
           _matches = cachedMatches;
           _isLoading = false;
@@ -46,8 +46,10 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       
       // Load from API
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
       if (teamId != null) {
-        final matches = await _apiService.getTeamMatches(teamId);
+        final matches = await _apiService.getTeamMatches(teamId, token);
         
         // Update cache
         await _storageService.cacheMatches(matches);
@@ -82,7 +84,8 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     
     if (confirmed) {
       try {
-        await _apiService.deleteMatch(match.id);
+        final token = await _authService.getToken();
+        await _apiService.deleteMatch(match.id, token);
         await _loadMatches(); // Reload matches
         if (mounted) {
           Helpers.showSnackBar(context, '경기가 삭제되었습니다.');

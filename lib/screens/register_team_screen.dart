@@ -77,24 +77,21 @@ class _RegisterTeamScreenState extends State<RegisterTeamScreen> {
         _passwordController.text.trim(),
       );
       
-      final token = loginResponse['access_token'] as String;
-      int teamId = team.id; // 생성된 팀 객체에서 ID 사용
+      final accessToken = loginResponse['access_token'] as String;
+      int teamId = team.id;
       
-      // API에서 반환된 team_id가 있다면 그것을 사용
-      if (loginResponse.containsKey('team_id')) {
-        teamId = loginResponse['team_id'] as int;
-      }
-      
-      await _authService.saveAuthData(token, teamId);
+      // TeamID를 문자열로 변환
+      final teamIdStr = teamId.toString();
+      await _authService.saveAuthData(accessToken, teamIdStr);
       
       // Upload logo if selected
       if (_logoFile != null) {
-        await _apiService.uploadTeamLogo(teamId, _logoFile!);
+        await _apiService.uploadTeamLogo(teamId, _logoFile!, accessToken);
       }
       
       // Upload image if selected
       if (_imageFile != null) {
-        await _apiService.uploadTeamImage(teamId, _imageFile!);
+        await _apiService.uploadTeamImage(teamId, _imageFile!, accessToken);
       }
       
       if (mounted) {

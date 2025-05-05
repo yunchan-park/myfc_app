@@ -39,8 +39,10 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
     
     try {
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
       if (teamId != null) {
-        final allPlayers = await _apiService.getTeamPlayers(teamId);
+        final allPlayers = await _apiService.getTeamPlayers(teamId, token);
         
         // Filter players by selected playerIds
         final selectedPlayers = allPlayers.where(
@@ -78,6 +80,8 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
     
     try {
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
       if (teamId != null) {
         // Create match
         final match = await _apiService.createMatch(
@@ -86,6 +90,7 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
           widget.matchData['score'],
           teamId,
           widget.matchData['playerIds'].cast<int>(),
+          token
         );
         
         // Add goals if there are any
@@ -96,6 +101,7 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
               goal['player_id'],
               goal['assist_player_id'],
               goal['quarter'],
+              token
             );
           }
         }

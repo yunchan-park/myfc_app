@@ -68,8 +68,10 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
     
     try {
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
       if (teamId != null) {
-        final allPlayers = await _apiService.getTeamPlayers(teamId);
+        final allPlayers = await _apiService.getTeamPlayers(teamId, token);
         
         // Filter players by selected playerIds
         final selectedPlayers = allPlayers.where(

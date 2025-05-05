@@ -6,6 +6,7 @@ import 'package:myfc_app/models/team.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/utils/validators.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class EditTeamScreen extends StatefulWidget {
   final Team team;
@@ -85,17 +86,20 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
         updateData['password'] = _passwordController.text.trim();
       }
       
+      // Get token for API calls
+      final token = await _getToken();
+      
       // Update team
-      await _apiService.updateTeam(widget.team.id, updateData);
+      await _apiService.updateTeam(widget.team.id, updateData, token);
       
       // Upload logo if selected
       if (_logoFile != null) {
-        await _apiService.uploadTeamLogo(widget.team.id, _logoFile!);
+        await _apiService.uploadTeamLogo(widget.team.id, _logoFile!, token);
       }
       
       // Upload image if selected
       if (_imageFile != null) {
-        await _apiService.uploadTeamImage(widget.team.id, _imageFile!);
+        await _apiService.uploadTeamImage(widget.team.id, _imageFile!, token);
       }
       
       if (mounted) {
@@ -117,6 +121,16 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+  
+  // Get token from secure storage
+  Future<String?> _getToken() async {
+    try {
+      const storage = FlutterSecureStorage();
+      return await storage.read(key: 'auth_token');
+    } catch (e) {
+      return null;
     }
   }
   

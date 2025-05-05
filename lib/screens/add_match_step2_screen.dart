@@ -43,8 +43,10 @@ class _AddMatchStep2ScreenState extends State<AddMatchStep2Screen> {
     
     try {
       final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
       if (teamId != null) {
-        final players = await _apiService.getTeamPlayers(teamId);
+        final players = await _apiService.getTeamPlayers(teamId, token);
         
         if (mounted) {
           setState(() {

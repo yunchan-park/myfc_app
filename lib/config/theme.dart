@@ -1,127 +1,89 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AppTheme {
   static ThemeData getTheme() {
     return ThemeData(
-      // Primary colors
-      primaryColor: Colors.black,
-      primarySwatch: Colors.grey,
-      
-      // Text theme
+      primarySwatch: Colors.blue,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: CupertinoColors.systemBackground,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: CupertinoColors.systemBackground,
+        foregroundColor: CupertinoColors.label,
+        elevation: 0,
+        centerTitle: true,
+      ),
       textTheme: const TextTheme(
-        displayLarge: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
-        displayMedium: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
-        displaySmall: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
+        titleLarge: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: CupertinoColors.label,
         ),
         bodyLarge: TextStyle(
           fontSize: 16,
-          color: Colors.black,
+          color: CupertinoColors.label,
         ),
         bodyMedium: TextStyle(
           fontSize: 14,
-          color: Colors.black,
-        ),
-        labelLarge: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: CupertinoColors.label,
         ),
       ),
-      
-      // AppBar theme
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: Colors.black,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      
-      // Button theme
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          minimumSize: const Size(double.infinity, 50),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      
-      // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
-        hintStyle: const TextStyle(
-          color: Colors.grey,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 15,
-          horizontal: 20,
-        ),
+        fillColor: CupertinoColors.systemGrey6,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: Colors.grey,
-            width: 1,
-          ),
+          borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: Colors.grey,
-            width: 1,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: CupertinoColors.activeBlue,
+          foregroundColor: CupertinoColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: Colors.black,
-            width: 2,
-          ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: CupertinoColors.activeBlue,
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: Colors.red,
-            width: 1,
+      ),
+      cupertinoOverrideTheme: const CupertinoThemeData(
+        primaryColor: CupertinoColors.activeBlue,
+        brightness: Brightness.light,
+        textTheme: CupertinoTextThemeData(
+          navTitleTextStyle: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: CupertinoColors.label,
           ),
         ),
       ),
-      
-      // Color scheme
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.black,
-        primary: Colors.black,
-        secondary: Colors.grey[800]!,
-        background: Colors.white,
-        surface: Colors.white,
-        error: Colors.red,
+    );
+  }
+  
+  static CupertinoThemeData getCupertinoTheme(Brightness brightness) {
+    return CupertinoThemeData(
+      brightness: brightness,
+      primaryColor: CupertinoColors.activeBlue,
+      scaffoldBackgroundColor: brightness == Brightness.light
+          ? CupertinoColors.systemBackground
+          : CupertinoColors.systemBackground.darkColor,
+      barBackgroundColor: brightness == Brightness.light
+          ? CupertinoColors.systemBackground
+          : CupertinoColors.systemBackground.darkColor,
+      textTheme: CupertinoTextThemeData(
+        navTitleTextStyle: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: brightness == Brightness.light
+              ? CupertinoColors.label
+              : CupertinoColors.label.darkColor,
+        ),
       ),
     );
   }

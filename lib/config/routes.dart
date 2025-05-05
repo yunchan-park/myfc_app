@@ -16,18 +16,18 @@ import 'package:myfc_app/screens/match_detail_screen.dart';
 class AppRoutes {
   static const String splash = '/';
   static const String home = '/home';
-  static const String registerTeam = '/register-team';
+  static const String registerTeam = '/register_team';
   static const String teamProfile = '/team-profile';
-  static const String editTeam = '/edit-team';
+  static const String editTeam = '/edit_team';
   static const String registerPlayer = '/register-player';
   static const String playerList = '/player-list';
   static const String playerManagement = '/player-management';
   static const String matchSummary = '/match-summary';
-  static const String addMatchStep1 = '/add-match-step1';
-  static const String addMatchStep2 = '/add-match-step2';
-  static const String addMatchStep3 = '/add-match-step3';
-  static const String addMatchStep4 = '/add-match-step4';
-  static const String matchDetail = '/match-detail';
+  static const String addMatchStep1 = '/add_match_step1';
+  static const String addMatchStep2 = '/add_match_step2';
+  static const String addMatchStep3 = '/add_match_step3';
+  static const String addMatchStep4 = '/add_match_step4';
+  static const String matchDetail = '/match_detail';
   
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -53,35 +53,44 @@ class AppRoutes {
       case addMatchStep1:
         return MaterialPageRoute(builder: (_) => const AddMatchStep1Screen());
       case addMatchStep2:
-        final arguments = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(builder: (_) => AddMatchStep2Screen(
-          date: arguments['date'],
-          opponent: arguments['opponent'],
-          quarters: arguments['quarters'],
-        ));
+        final arguments = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => AddMatchStep2Screen(
+            opponent: arguments?['opponent'] as String? ?? '',
+            date: arguments?['date'] as DateTime? ?? DateTime.now(),
+            quarters: arguments?['quarters'] as int? ?? 4,
+          ),
+        );
       case addMatchStep3:
-        final arguments = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(builder: (_) => AddMatchStep3Screen(
-          date: arguments['date'],
-          opponent: arguments['opponent'],
-          quarters: arguments['quarters'],
-          playerIds: arguments['playerIds'],
-        ));
+        final arguments = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => AddMatchStep3Screen(
+            opponent: arguments?['opponent'] as String? ?? '',
+            date: arguments?['date'] as DateTime? ?? DateTime.now(),
+            quarters: arguments?['quarters'] as int? ?? 4,
+            playerIds: arguments?['playerIds'] as List<int>? ?? [],
+          ),
+        );
       case addMatchStep4:
-        final arguments = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(builder: (_) => AddMatchStep4Screen(
-          matchData: arguments,
-        ));
+        final arguments = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => AddMatchStep4Screen(
+            matchData: arguments ?? {},
+          ),
+        );
       case matchDetail:
-        final matchId = settings.arguments as int;
-        return MaterialPageRoute(builder: (_) => MatchDetailScreen(matchId: matchId));
+        final arguments = settings.arguments as Map<String, dynamic>?;
+        final matchIdStr = arguments?['matchId'] as String? ?? '';
+        final matchId = int.tryParse(matchIdStr) ?? 0;
+        
+        return MaterialPageRoute(
+          builder: (_) => MatchDetailScreen(
+            matchId: matchId,
+          ),
+        );
       default:
         return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(
-              child: Text('No route defined for ${settings.name}'),
-            ),
-          ),
+          builder: (_) => const SplashScreen(),
         );
     }
   }

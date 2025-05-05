@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:myfc_app/config/routes.dart';
-import 'package:myfc_app/config/theme.dart';
-import 'package:myfc_app/screens/splash_screen.dart';
 
 void main() {
   // 플러터 오류 핸들링 설정
@@ -24,17 +22,20 @@ void main() {
 }
 
 class MyFCApp extends StatelessWidget {
-  const MyFCApp({Key? key}) : super(key: key);
-  
+  const MyFCApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'My Football Club',
-      theme: AppTheme.getTheme(),
-      initialRoute: AppRoutes.splash,
+      title: 'MY FC',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
+      ),
       onGenerateRoute: AppRoutes.generateRoute,
-      // 디버그 배너 활성화 (개발 중 화면 식별을 위함)
-      debugShowCheckedModeBanner: true,
+      initialRoute: AppRoutes.splash,
+      debugShowCheckedModeBanner: false,
     );
   }
 }
