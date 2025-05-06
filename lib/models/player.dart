@@ -1,42 +1,34 @@
 class Player {
   final int id;
   final String name;
-  final int number;
   final String position;
+  final int number;
   final int teamId;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-  int momCount;
-  int assistCount;
-  int goalCount;
+  final int goalCount;
+  final int assistCount;
+  final int momCount;
 
   Player({
     required this.id,
     required this.name,
-    required this.number,
     required this.position,
+    required this.number,
     required this.teamId,
-    required this.createdAt,
-    this.updatedAt,
-    this.momCount = 0,
-    this.assistCount = 0,
     this.goalCount = 0,
+    this.assistCount = 0,
+    this.momCount = 0,
   });
 
   factory Player.fromJson(Map<String, dynamic> json) {
     return Player(
-      id: json['id'],
-      name: json['name'],
-      number: json['number'],
-      position: json['position'],
-      teamId: json['team_id'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
-      momCount: json['mom_count'] ?? 0,
-      assistCount: json['assist_count'] ?? 0,
+      id: json['id'] is String ? int.parse(json['id']) : json['id'],
+      name: json['name'] ?? 'Unknown',
+      position: json['position'] ?? 'Unknown',
+      number: json['number'] ?? 0,
+      teamId: json['team_id'] is String ? int.parse(json['team_id']) : json['team_id'],
       goalCount: json['goal_count'] ?? 0,
+      assistCount: json['assist_count'] ?? 0,
+      momCount: json['mom_count'] ?? 0,
     );
   }
 
@@ -44,11 +36,34 @@ class Player {
     return {
       'id': id,
       'name': name,
-      'number': number,
       'position': position,
+      'number': number,
       'team_id': teamId,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
+      'goal_count': goalCount,
+      'assist_count': assistCount,
+      'mom_count': momCount,
     };
   }
-} 
+
+  Player copyWith({
+    int? id,
+    String? name,
+    String? position,
+    int? number,
+    int? teamId,
+    int? goalCount,
+    int? assistCount,
+    int? momCount,
+  }) {
+    return Player(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      position: position ?? this.position,
+      number: number ?? this.number,
+      teamId: teamId ?? this.teamId,
+      goalCount: goalCount ?? this.goalCount,
+      assistCount: assistCount ?? this.assistCount,
+      momCount: momCount ?? this.momCount,
+    );
+  }
+}

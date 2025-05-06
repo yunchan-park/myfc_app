@@ -35,6 +35,9 @@ class Player(Base):
     number = Column(Integer)
     position = Column(String)
     team_id = Column(Integer, ForeignKey("teams.id"))
+    goal_count = Column(Integer, default=0)
+    assist_count = Column(Integer, default=0)
+    mom_count = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -57,6 +60,7 @@ class Match(Base):
     team = relationship("Team", back_populates="matches")
     players = relationship("Player", secondary=match_player, back_populates="matches")
     goals = relationship("Goal", back_populates="match")
+    quarter_scores = relationship("QuarterScore", back_populates="match", cascade="all, delete-orphan")
 
 class Goal(Base):
     __tablename__ = "goals"
@@ -71,4 +75,17 @@ class Goal(Base):
 
     match = relationship("Match", back_populates="goals")
     player = relationship("Player", foreign_keys=[player_id], back_populates="goals")
-    assist_player = relationship("Player", foreign_keys=[assist_player_id], back_populates="assists") 
+    assist_player = relationship("Player", foreign_keys=[assist_player_id], back_populates="assists")
+
+class QuarterScore(Base):
+    __tablename__ = "quarter_scores"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("matches.id"))
+    quarter = Column(Integer)
+    our_score = Column(Integer)
+    opponent_score = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    match = relationship("Match", back_populates="quarter_scores") 

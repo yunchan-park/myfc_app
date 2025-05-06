@@ -1,424 +1,440 @@
 import 'package:flutter/material.dart';
 import 'package:myfc_app/models/match.dart';
+import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/services/api_service.dart';
-import 'package:myfc_app/services/auth_service.dart';
-import 'package:myfc_app/utils/helpers.dart';
-import 'package:myfc_app/widgets/widgets.dart';
+import 'package:myfc_app/services/storage_service.dart';
+import 'package:myfc_app/config/routes.dart';
+import 'package:myfc_app/widgets/quarter_score_widget.dart' as widgets;
+import 'package:myfc_app/widgets/goal_list_widget.dart' as widgets;
 
 class MatchDetailScreen extends StatefulWidget {
   final int matchId;
-  
-  const MatchDetailScreen({Key? key, required this.matchId}) : super(key: key);
+
+  const MatchDetailScreen({super.key, required this.matchId});
 
   @override
   State<MatchDetailScreen> createState() => _MatchDetailScreenState();
 }
 
-class _MatchDetailScreenState extends State<MatchDetailScreen> with SingleTickerProviderStateMixin {
+class _MatchDetailScreenState extends State<MatchDetailScreen> {
   final ApiService _apiService = ApiService();
-  final AuthService _authService = AuthService();
-  
+  final StorageService _storageService = StorageService();
   Match? _match;
+  int _selectedQuarter = 1;
+  String _opponentName = 'FC UNIX';
   bool _isLoading = true;
-  late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
     _loadMatchDetails();
   }
-  
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-  
+
   Future<void> _loadMatchDetails() async {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
-      final token = await _authService.getToken();
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw Exception('No token found');
+      }
+
       final match = await _apiService.getMatchDetail(widget.matchId, token);
+      print('매치 세부 정보 로드됨: ${match.id}, 상대: ${match.opponent}, 점수: ${match.score}');
+      
+      // 상대팀 이름 설정
+      setState(() {
+        _match = match;
+        _opponentName = match.opponent;
+        _isLoading = false;
+      });
+      
+      // 디버그 로그 출력
+      if (match.quarterScores != null) {
+        print('쿼터 스코어: ${match.quarterScores!.length}개');
+        match.quarterScores!.forEach((quarter, score) {
+          print('$quarter쿼터: ${score.ourScore}:${score.opponentScore}');
+        });
+      }
+      
+      if (match.goals != null) {
+        print('골 기록: ${match.goals!.length}개');
+        for (var goal in match.goals!) {
+          final playerName = goal.player?.name ?? '알 수 없음';
+          final assistName = goal.assistPlayer?.name ?? '없음';
+          print('$playerName의 골 (쿼터: ${goal.quarter}, 어시스트: $assistName)');
+        }
+      }
+    } catch (e) {
+      print('매치 세부 정보 로드 오류: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteMatch() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final token = await _storageService.getToken();
+      if (token == null) {
+        throw Exception('No token found');
+      }
+
+      final result = await _apiService.deleteMatch(widget.matchId, token);
       
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? '매치가 삭제되었습니다.')),
+        );
+        Navigator.of(context).pop(true); // 삭제 성공 표시
+      }
+    } catch (e) {
+      print('매치 삭제 오류: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('매치 삭제 실패: $e')),
+        );
         setState(() {
-          _match = match;
           _isLoading = false;
         });
       }
-    } catch (e) {
-      if (mounted) {
-        Helpers.showSnackBar(
-          context,
-          '경기 정보를 불러오는 데 실패했습니다.',
-          isError: true,
-        );
-      }
     }
   }
-  
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('매치 삭제'),
+        content: const Text('정말 이 매치를 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteMatch();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('매치 상세 정보'),
+        title: const Text('Match Detail'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.delete),
+            onPressed: _isLoading ? null : _confirmDelete,
+            tooltip: '매치 삭제',
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.grey[300],
-            height: 1,
-          ),
-        ),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _match == null
-          ? const Center(child: Text('경기 정보를 불러올 수 없습니다.'))
-          : SafeArea(
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          // Team names and score
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  '우리 팀',
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 16),
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  _match!.score,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  _match!.opponent,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Match date
-                          Text(
-                            Helpers.formatDateKorean(_match!.date),
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 32),
-                          
-                          // Quarter score summary
-                          if (_match!.quarterScores != null && _match!.quarterScores!.isNotEmpty)
-                            _buildQuarterScoreSummary(),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  // Quarter tabs
-                  if (_match!.quarterScores != null && _match!.quarterScores!.isNotEmpty) ...[
-                    SliverToBoxAdapter(
-                      child: Column(
-                        children: [
-                          Divider(color: Colors.grey[300], height: 1),
-                          
-                          TabBar(
-                            controller: _tabController,
-                            indicatorColor: Colors.black,
-                            labelColor: Colors.black,
-                            unselectedLabelColor: Colors.grey,
-                            tabs: _buildQuarterTabs(),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 300,
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: _buildQuarterViews(),
-                        ),
-                      ),
-                    ),
-                  ],
-                  
-                  // Goals summary
-                  if (_match!.goals != null && _match!.goals!.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _buildGoalsSummary(),
-                    ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _match == null
+              ? const Center(child: Text('매치 정보를 불러올 수 없습니다.'))
+              : _buildMatchDetailContent(),
+    );
+  }
+
+  Widget _buildMatchDetailContent() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildScoreCard(),
+            const SizedBox(height: 20),
+            if (_match!.quarterScores != null && _match!.quarterScores!.isNotEmpty)
+              Column(
+                children: [
+                  _buildQuarterScoreWidget(),
+                  const SizedBox(height: 20),
                 ],
               ),
+            _buildGoalScorers(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreCard() {
+    final score = _match!.score.split(':');
+    final ourScore = int.tryParse(score[0]) ?? 0;
+    final opponentScore = int.tryParse(score[1]) ?? 0;
+    
+    return Card(
+      elevation: 4.0,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text(
+              _match!.date,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-    );
-  }
-  
-  Widget _buildQuarterScoreSummary() {
-    final quarterScores = <int, QuarterScore>{};
-    _match!.quarterScores!.forEach((quarter, score) {
-      quarterScores[quarter] = QuarterScore(
-        ourScore: score.ourScore,
-        opponentScore: score.opponentScore,
-      );
-    });
-    
-    return QuarterScoreWidget(
-      quarterScores: quarterScores,
-      selectedQuarter: _tabController.index + 1,
-      onQuarterSelected: (quarter) {
-        _tabController.animateTo(quarter - 1);
-      },
-      maxQuarters: _match!.quarterScores!.length,
-    );
-  }
-  
-  List<Tab> _buildQuarterTabs() {
-    final quarterKeys = _match!.quarterScores!.keys.toList()..sort();
-    
-    return quarterKeys.map((quarter) => Tab(
-      text: '${quarter}쿼터',
-    )).toList();
-  }
-  
-  List<Widget> _buildQuarterViews() {
-    final quarterKeys = _match!.quarterScores!.keys.toList()..sort();
-    
-    return quarterKeys.map((quarter) => _buildQuarterDetails(quarter)).toList();
-  }
-  
-  Widget _buildQuarterDetails(int quarter) {
-    final quarterScore = _match!.quarterScores![quarter]!;
-    final quarterGoals = _match!.goals
-        ?.where((goal) => goal.quarter == quarter)
-        .toList() ?? [];
-    
-    // Convert to Goal objects for GoalListWidget
-    final goals = quarterGoals.map((goal) {
-      return Goal(
-        scorer: goal.player?.name ?? '알 수 없음',
-        assistant: goal.assistPlayer?.name,
-        quarter: quarter,
-      );
-    }).toList();
-    
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Quarter score
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '우리 팀',
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 16,
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                const Expanded(
+                  child: Text(
+                    'FC C++',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${quarterScore.ourScore} : ${quarterScore.opponentScore}',
+                Text(
+                  '$ourScore : $opponentScore',
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  _match!.opponent,
-                  style: const TextStyle(
-                    fontSize: 16,
+                Expanded(
+                  child: Text(
+                    _opponentName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Goals in this quarter
-          if (quarterGoals.isNotEmpty) ...[
-            const Text(
-              '득점 기록',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 150,
-              child: SingleChildScrollView(
-                child: GoalListWidget(
-                  goals: goals,
-                  emptyMessage: '이 쿼터에 득점 기록이 없습니다.',
-                ),
+            const SizedBox(height: 10),
+            Text(
+              '결과: ${_match!.getResult()}',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: _match!.getResultEnum() == MatchResult.win
+                    ? Colors.green
+                    : _match!.getResultEnum() == MatchResult.lose
+                        ? Colors.red
+                        : Colors.grey,
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
-  
-  Widget _buildGoalsSummary() {
+
+  Widget _buildQuarterScoreWidget() {
+    if (_match!.quarterScores == null || _match!.quarterScores!.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text('쿼터 스코어 정보가 없습니다.'),
+        ),
+      );
+    }
+
+    // Convert from Match.QuarterScore to widgets.QuarterScore
+    Map<int, widgets.QuarterScore> widgetQuarterScores = {};
+    _match!.quarterScores!.forEach((quarter, score) {
+      widgetQuarterScores[quarter] = widgets.QuarterScore(
+        ourScore: score.ourScore, 
+        opponentScore: score.opponentScore
+      );
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '쿼터별 스코어',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        widgets.QuarterScoreWidget(
+          quarterScores: widgetQuarterScores,
+          selectedQuarter: _selectedQuarter,
+          onQuarterSelected: (quarter) {
+            setState(() {
+              _selectedQuarter = quarter;
+            });
+          },
+          maxQuarters: 4,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGoalScorers() {
     if (_match!.goals == null || _match!.goals!.isEmpty) {
-      return const SizedBox.shrink();
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Center(child: Text('득점 기록이 없습니다.')),
+        ),
+      );
     }
     
-    // Group goals by player
-    final playerGoals = <int, int>{};
-    final playerAssists = <int, int>{};
+    // 현재 선택된 쿼터의 골만 필터링
+    final List<Goal> quarterGoals = _match!.goals!
+        .where((goal) => goal.quarter == _selectedQuarter)
+        .toList();
     
-    for (final goal in _match!.goals!) {
-      playerGoals[goal.playerId] = (playerGoals[goal.playerId] ?? 0) + 1;
+    // 쿼터에 따른 골 수 맵 생성
+    final Map<int, int> goalsPerQuarter = {};
+    for (var goal in _match!.goals!) {
+      goalsPerQuarter[goal.quarter] = (goalsPerQuarter[goal.quarter] ?? 0) + 1;
+    }
+    
+    // 위젯에서 사용할 Goal 객체로 변환
+    final List<widgets.Goal> widgetGoals = quarterGoals.map((goal) {
+      final Player? scorer = goal.player;
+      String scorerDisplay = '알 수 없음';
       
-      if (goal.assistPlayerId != null) {
-        playerAssists[goal.assistPlayerId!] = (playerAssists[goal.assistPlayerId!] ?? 0) + 1;
+      if (scorer != null) {
+        scorerDisplay = '${scorer.name} (${scorer.number}번)';
+        
+        // 로그 출력
+        print('골 스코어러: ${scorer.name}, 골 수: ${scorer.goalCount}, 어시스트 수: ${scorer.assistCount}, MOM 수: ${scorer.momCount}');
       }
-    }
-    
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            '개인 통계',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+      
+      String? assistantDisplay;
+      if (goal.assistPlayer != null) {
+        final Player assistPlayer = goal.assistPlayer!;
+        assistantDisplay = '${assistPlayer.name} (${assistPlayer.number}번)';
+        
+        // 로그 출력
+        print('어시스트: ${assistPlayer.name}, 골 수: ${assistPlayer.goalCount}, 어시스트 수: ${assistPlayer.assistCount}, MOM 수: ${assistPlayer.momCount}');
+      }
+      
+      return widgets.Goal(
+        scorer: scorerDisplay,
+        assistant: assistantDisplay,
+        quarter: goal.quarter,
+        id: goal.id.toString(),
+      );
+    }).toList();
+
+    return Card(
+      elevation: 2.0,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  '득점 기록',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                // 현재 쿼터 표시
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '$_selectedQuarter쿼터',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Goal scorers
-          if (playerGoals.isNotEmpty) ...[
-            const Text(
-              '득점',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...playerGoals.entries.map((entry) {
-              final player = _match!.goals!
-                  .firstWhere((goal) => goal.playerId == entry.key)
-                  .player;
-              
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        player?.name ?? '알 수 없음',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+            const SizedBox(height: 12),
+            const Divider(),
+            
+            // 쿼터 선택 버튼
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [1, 2, 3, 4].map((quarter) {
+                  final hasGoals = goalsPerQuarter.containsKey(quarter) && goalsPerQuarter[quarter]! > 0;
+                  
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _selectedQuarter == quarter
+                              ? Theme.of(context).primaryColor
+                              : Colors.grey.shade200,
+                          foregroundColor: _selectedQuarter == quarter
+                              ? Colors.white
+                              : Colors.black87,
+                          disabledBackgroundColor: Colors.grey.shade100,
+                          disabledForegroundColor: Colors.grey.shade400,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _selectedQuarter = quarter;
+                          });
+                        },
+                        child: Text(
+                          '$quarter쿼터${hasGoals ? ' (${goalsPerQuarter[quarter]})' : ''}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: _selectedQuarter == quarter ? FontWeight.bold : FontWeight.normal,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text('${entry.value}골'),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 16),
-          ],
-          
-          // Assist providers
-          if (playerAssists.isNotEmpty) ...[
-            const Text(
-              '어시스트',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+                  );
+                }).toList(),
               ),
             ),
-            const SizedBox(height: 8),
-            ...playerAssists.entries.map((entry) {
-              final player = _match!.goals!
-                  .firstWhere((goal) => goal.assistPlayerId == entry.key)
-                  .assistPlayer;
-              
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        player?.name ?? '알 수 없음',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('${entry.value}개'),
-                  ],
+            
+            // 골 목록
+            if (quarterGoals.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: Text('이 쿼터의 득점 기록이 없습니다.')),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: widgets.GoalListWidget(
+                  goals: widgetGoals,
+                  emptyMessage: '이 쿼터에는 득점 기록이 없습니다.',
                 ),
-              );
-            }),
+              ),
           ],
-        ],
+        ),
       ),
     );
   }
-} 
+}

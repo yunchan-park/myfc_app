@@ -18,9 +18,17 @@ class Helpers {
     return DateFormat('MM월 dd일').format(date);
   }
 
-  // Get month header (YYYY년 MM월)
-  static String getMonthHeader(DateTime date) {
-    return DateFormat('yyyy년 MM월').format(date);
+  // Date String에서 월별 헤더 반환 (YYYY년 MM월)
+  static String getMonthHeader(dynamic date) {
+    DateTime dateTime;
+    if (date is String) {
+      dateTime = DateFormat('yyyy-MM-dd').parse(date);
+    } else if (date is DateTime) {
+      dateTime = date;
+    } else {
+      return '';
+    }
+    return DateFormat('yyyy년 MM월').format(dateTime);
   }
 
   // Group matches by month

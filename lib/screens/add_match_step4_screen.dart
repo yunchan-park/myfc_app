@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:myfc_app/config/routes.dart';
 import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/services/api_service.dart';
-import 'package:myfc_app/services/auth_service.dart';
+import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
 import 'package:myfc_app/widgets/widgets.dart';
 
@@ -20,7 +20,7 @@ class AddMatchStep4Screen extends StatefulWidget {
 
 class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
   final ApiService _apiService = ApiService();
-  final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
   
   List<Player> _players = [];
   bool _isLoading = true;
@@ -38,8 +38,8 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
     });
     
     try {
-      final teamId = await _authService.getTeamId();
-      final token = await _authService.getToken();
+      final teamId = await _storageService.getTeamId();
+      final token = await _storageService.getToken();
       
       if (teamId != null) {
         final allPlayers = await _apiService.getTeamPlayers(teamId, token);
@@ -79,8 +79,8 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
     });
     
     try {
-      final teamId = await _authService.getTeamId();
-      final token = await _authService.getToken();
+      final teamId = await _storageService.getTeamId();
+      final token = await _storageService.getToken();
       
       if (teamId != null) {
         // Create match
@@ -88,13 +88,15 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
           widget.matchData['date'],
           widget.matchData['opponent'],
           widget.matchData['score'],
-          teamId,
+          int.parse(teamId),
           widget.matchData['playerIds'].cast<int>(),
-          token
+          token,
+          widget.matchData['quarterScores'] as Map<int, Map<String, int>>
         );
         
         // Add goals if there are any
         if (widget.matchData['goals'] != null) {
+          print('${widget.matchData['goals'].length}개의 골 기록 등록 시작');
           for (final goal in widget.matchData['goals']) {
             await _apiService.addGoal(
               match.id,
@@ -103,7 +105,9 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
               goal['quarter'],
               token
             );
+            print('골 등록 완료: 득점자=${goal['player_id']}, 어시스트=${goal['assist_player_id']}, 쿼터=${goal['quarter']}');
           }
+          print('모든 골 기록 등록 완료 - 통계 업데이트는 백엔드에서 자동으로 처리됨');
         }
         
         // Show success message
@@ -416,7 +420,7 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
           number: 0,
           position: '',
           teamId: 0,
-          createdAt: DateTime.now(),
+          goalCount: 0,
         ),
       );
       
@@ -430,7 +434,7 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
             number: 0,
             position: '',
             teamId: 0,
-            createdAt: DateTime.now(),
+            assistCount: 0,
           ),
         );
         assistName = '${assistPlayer.name} (${assistPlayer.number}번)';

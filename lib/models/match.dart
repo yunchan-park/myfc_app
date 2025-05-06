@@ -2,87 +2,92 @@ import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/widgets/match_card.dart';
 import 'package:myfc_app/widgets/quarter_score_widget.dart';
 
+enum MatchResult {
+  win,
+  lose,
+  draw
+}
+
 class Match {
   final int id;
-  final DateTime date;
+  final String date;
   final String opponent;
   final String score;
-  final int teamId;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-  final List<Player>? players;
-  final List<ModelGoal>? goals;
   final Map<int, QuarterScore>? quarterScores;
+  final List<Goal>? goals;
 
   Match({
     required this.id,
     required this.date,
     required this.opponent,
     required this.score,
-    required this.teamId,
-    required this.createdAt,
-    this.updatedAt,
-    this.players,
-    this.goals,
     this.quarterScores,
+    this.goals,
   });
 
   factory Match.fromJson(Map<String, dynamic> json) {
-    List<Player>? playerList;
-    List<ModelGoal>? goalList;
-    Map<int, QuarterScore>? quarterMap;
+    Map<int, QuarterScore>? quarters;
+    List<Goal>? goals;
 
-    if (json['players'] != null) {
-      playerList = (json['players'] as List)
-          .map((player) => Player.fromJson(player))
-          .toList();
-    }
-
-    if (json['goals'] != null) {
-      goalList = (json['goals'] as List)
-          .map((goal) => ModelGoal.fromJson(goal))
-          .toList();
-    }
-
-    if (json['quarter_scores'] != null) {
-      quarterMap = {};
-      (json['quarter_scores'] as Map<String, dynamic>).forEach((key, value) {
-        quarterMap![int.parse(key)] = QuarterScore.fromJson(value);
+    if (json.containsKey('quarter_scores') && json['quarter_scores'] != null) {
+      quarters = {};
+      Map<String, dynamic> quarterData = json['quarter_scores'];
+      quarterData.forEach((key, value) {
+        int quarter = int.tryParse(key) ?? 0;
+        quarters![quarter] = QuarterScore.fromJson(value);
       });
     }
 
+    if (json.containsKey('goals') && json['goals'] != null) {
+      goals = [];
+      List<dynamic> goalsData = json['goals'];
+      for (var goalJson in goalsData) {
+        goals.add(Goal.fromJson(goalJson));
+      }
+    }
+
+    // 디버그를 위한 로그 출력
+    print('매치 데이터 파싱:');
+    print('ID: ${json['id']}');
+    print('날짜: ${json['date']}');
+    print('상대: ${json['opponent']}');
+    print('점수: ${json['score']}');
+    print('쿼터 스코어: $quarters');
+    print('득점 기록: $goals');
+
     return Match(
       id: json['id'],
-      date: DateTime.parse(json['date']),
+      date: json['date'],
       opponent: json['opponent'],
       score: json['score'],
-      teamId: json['team_id'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
-      players: playerList,
-      goals: goalList,
-      quarterScores: quarterMap,
+      quarterScores: quarters,
+      goals: goals,
     );
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {
+    Map<String, dynamic> quarterData = {};
+    
+    if (quarterScores != null) {
+      quarterScores!.forEach((quarter, score) {
+        quarterData[quarter.toString()] = score.toJson();
+      });
+    }
+    
+    List<Map<String, dynamic>>? goalsData;
+    
+    if (goals != null) {
+      goalsData = goals!.map((goal) => goal.toJson()).toList();
+    }
+    
+    return {
       'id': id,
-      'date': date.toIso8601String(),
+      'date': date,
       'opponent': opponent,
       'score': score,
-      'team_id': teamId,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
+      'quarter_scores': quarterScores != null ? quarterData : null,
+      'goals': goals != null ? goalsData : null,
     };
-
-    if (players != null) {
-      data['player_ids'] = players!.map((player) => player.id).toList();
-    }
-
-    return data;
   }
 
   String getResult() {
@@ -128,55 +133,93 @@ class Match {
   }
 }
 
-class ModelGoal {
-  final int id;
-  final int matchId;
-  final int playerId;
-  final int? assistPlayerId;
-  final int quarter;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-  final Player? player;
-  final Player? assistPlayer;
+class QuarterScore {
+  final int ourScore;
+  final int opponentScore;
 
-  ModelGoal({
-    required this.id,
-    required this.matchId,
-    required this.playerId,
-    this.assistPlayerId,
-    required this.quarter,
-    required this.createdAt,
-    this.updatedAt,
-    this.player,
-    this.assistPlayer,
+  QuarterScore({
+    required this.ourScore,
+    required this.opponentScore,
   });
 
-  factory ModelGoal.fromJson(Map<String, dynamic> json) {
-    return ModelGoal(
-      id: json['id'],
-      matchId: json['match_id'],
-      playerId: json['player_id'],
-      assistPlayerId: json['assist_player_id'],
-      quarter: json['quarter'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
-      player: json['player'] != null ? Player.fromJson(json['player']) : null,
-      assistPlayer: json['assist_player'] != null
-          ? Player.fromJson(json['assist_player'])
-          : null,
+  factory QuarterScore.fromJson(Map<String, dynamic> json) {
+    return QuarterScore(
+      ourScore: json['our_score'],
+      opponentScore: json['opponent_score'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'match_id': matchId,
-      'player_id': playerId,
-      'assist_player_id': assistPlayerId,
-      'quarter': quarter,
+      'our_score': ourScore,
+      'opponent_score': opponentScore,
     };
   }
 }
 
-// QuarterScore 클래스 제거 - widgets/quarter_score_widget.dart에서 임포트하여 사용 
+class Goal {
+  final int id;
+  final int quarter;
+  final int playerId;
+  final int? assistPlayerId;
+  final Player? player;  // 득점자 선수 객체
+  final Player? assistPlayer;  // 어시스트 선수 객체
+
+  Goal({
+    required this.id,
+    required this.quarter,
+    required this.playerId,
+    this.assistPlayerId,
+    this.player,
+    this.assistPlayer,
+  });
+
+  factory Goal.fromJson(Map<String, dynamic> json) {
+    // 디버그를 위한 로그 출력
+    print('골 데이터 파싱:');
+    print('ID: ${json['id']}');
+    print('쿼터: ${json['quarter']}');
+    print('득점자 ID: ${json['player_id']}');
+    print('어시스트 ID: ${json['assist_player_id']}');
+    
+    Player? player;
+    Player? assistPlayer;
+    
+    // player_data가 있으면 Player 객체 생성
+    if (json.containsKey('player_data') && json['player_data'] != null) {
+      player = Player.fromJson(json['player_data']);
+      print('득점자 이름: ${player.name}');
+    }
+    
+    // assist_player_data가 있으면 Player 객체 생성
+    if (json.containsKey('assist_player_data') && json['assist_player_data'] != null) {
+      assistPlayer = Player.fromJson(json['assist_player_data']);
+      print('어시스트 선수 이름: ${assistPlayer.name}');
+    }
+    
+    return Goal(
+      id: json['id'],
+      quarter: json['quarter'],
+      playerId: json['player_id'],
+      assistPlayerId: json['assist_player_id'],
+      player: player,
+      assistPlayer: assistPlayer,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> data = {
+      'id': id,
+      'quarter': quarter,
+      'player_id': playerId,
+    };
+    
+    if (assistPlayerId != null) {
+      data['assist_player_id'] = assistPlayerId;
+    }
+    
+    // Player 객체를 JSON으로 변환하지 않음 (API 요청에는 필요하지 않을 수 있음)
+    
+    return data;
+  }
+} 

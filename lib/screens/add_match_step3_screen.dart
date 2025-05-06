@@ -368,7 +368,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
               number: 0,
               position: '',
               teamId: 0,
-              createdAt: DateTime.now(),
             ),
           );
           
@@ -382,7 +381,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
                 number: 0,
                 position: '',
                 teamId: 0,
-                createdAt: DateTime.now(),
               ),
             );
             assistPlayerName = '${assistPlayer.name} (${assistPlayer.number}번)';

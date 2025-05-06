@@ -73,15 +73,18 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
           final players = await _apiService.getTeamPlayers(teamId, token);
           
           // Update cache
-          await _storageService.cacheTeam(team);
-          await _storageService.cachePlayers(players);
+          _storageService.cacheTeam(team);
+          _storageService.cachePlayers(players);
           
-          setState(() {
-            _team = team;
-            _players = players;
-            _isLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _team = team;
+              _players = players;
+              _isLoading = false;
+            });
+          }
         } catch (e) {
+          print('Error loading team profile: $e');
           if (mounted) {
             Helpers.showSnackBar(
               context,

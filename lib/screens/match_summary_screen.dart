@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:myfc_app/config/routes.dart';
 import 'package:myfc_app/models/match.dart';
 import 'package:myfc_app/services/api_service.dart';
@@ -79,16 +80,16 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     final confirmed = await Helpers.showConfirmationDialog(
       context,
       '경기 삭제',
-      '${match.opponent}와의 경기를 삭제하시겠습니까?',
+      '${match.opponent}와의 경기를 삭제하시겠습니까?\n\n삭제 시 관련 득점, 도움, MOM 통계가 모두 업데이트됩니다.',
     );
     
     if (confirmed) {
       try {
         final token = await _authService.getToken();
-        await _apiService.deleteMatch(match.id, token);
+        final result = await _apiService.deleteMatch(match.id, token);
         await _loadMatches(); // Reload matches
         if (mounted) {
-          Helpers.showSnackBar(context, '경기가 삭제되었습니다.');
+          Helpers.showSnackBar(context, result['message'] ?? '경기가 삭제되었습니다.');
         }
       } catch (e) {
         if (mounted) {
@@ -144,7 +145,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     // Group matches by month
     final groupedMatches = Helpers.groupByMonth<Match>(
       _matches,
-      (match) => match.date,
+      (match) => DateFormat('yyyy-MM-dd').parse(match.date),
     );
     
     // Sort keys in descending order (newest first)
@@ -217,21 +218,19 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     final result = match.getResultEnum();
     
     return MatchCard(
-      opponent: match.opponent,
+      id: match.id,
       date: match.date,
-      ourScore: match.ourScore,
-      opponentScore: match.opponentScore,
+      opponent: match.opponent,
+      score: match.score,
       result: result,
-      onTap: () => Navigator.pushNamed(
-        context,
-        AppRoutes.matchDetail,
-        arguments: match.id,
-      ),
-      onEditTap: () {
-        // TODO: Implement edit match
-        Helpers.showSnackBar(context, '경기 수정 기능 준비 중입니다.');
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/match_detail',
+          arguments: match.id,
+        );
       },
-      onDeleteTap: () => _deleteMatch(match),
+      onDelete: () => _deleteMatch(match),
     );
   }
 } 

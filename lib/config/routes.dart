@@ -79,10 +79,7 @@ class AppRoutes {
           ),
         );
       case matchDetail:
-        final arguments = settings.arguments as Map<String, dynamic>?;
-        final matchIdStr = arguments?['matchId'] as String? ?? '';
-        final matchId = int.tryParse(matchIdStr) ?? 0;
-        
+        final matchId = settings.arguments as int;
         return MaterialPageRoute(
           builder: (_) => MatchDetailScreen(
             matchId: matchId,
