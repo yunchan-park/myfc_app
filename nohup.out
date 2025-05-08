@@ -1,0 +1,52 @@
+INFO:     Started server process [70094]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+(trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/yunchan/myfc_app/venv/lib/python3.9/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:57861 - "POST /teams/create HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57868 - "POST /teams/login HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:57876 - "POST /teams/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57883 - "POST /players/create HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:57890 - "POST /players/create HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57896 - "POST /players/create HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57905 - "GET /players/team/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57912 - "POST /matches/create HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57918 - "GET /matches/team/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57925 - "POST /matches/1/goals HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:57969 - "POST /matches/1/goals HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57982 - "GET /matches/1/detail HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57995 - "PUT /players/6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58011 - "PUT /players/6/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58023 - "DELETE /players/7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58034 - "PUT /matches/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58044 - "DELETE /matches/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "GET /players/team/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58164 - "OPTIONS /teams/create HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58164 - "POST /teams/create HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58164 - "OPTIONS /teams/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58166 - "POST /teams/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58170 - "POST /teams/create HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:58177 - "POST /teams/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58177 - "OPTIONS /teams/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58177 - "GET /teams/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58177 - "OPTIONS /players/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58179 - "GET /players/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58179 - "GET /players/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58179 - "OPTIONS /matches/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58177 - "GET /matches/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58177 - "GET /teams/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58177 - "GET /players/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58181 - "PUT /teams/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58185 - "GET /matches/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58188 - "GET /matches/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58188 - "GET /players/team/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58188 - "GET /teams/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58188 - "GET /players/team/1 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [70094]
