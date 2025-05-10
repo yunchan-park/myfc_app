@@ -1,10 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
+import logging
+import time
+import asyncio
 from .. import models, schemas, auth
 from ..database import get_db
 from ..utils.file_handler import save_upload_file, delete_file
 from datetime import timedelta
+
+# 로깅 설정
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/teams",
@@ -12,27 +18,64 @@ router = APIRouter(
 )
 
 @router.post("/create", response_model=schemas.Team)
-def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
+async def create_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
+    # 요청 시작 시간 기록
+    start_time = time.time()
+    
+    logger.debug(f"팀 생성 시작: {team.name}")
+    
+    # 중복 검사 최적화 (인덱스 활용)
     db_team = db.query(models.Team).filter(models.Team.name == team.name).first()
     if db_team:
+        logger.warning(f"중복된 팀 이름: {team.name}")
         raise HTTPException(status_code=400, detail="Team name already registered")
     
-    hashed_password = auth.get_password_hash(team.password)
-    db_team = models.Team(
-        name=team.name,
-        description=team.description,
-        type=team.type,
-        password=hashed_password
-    )
-    db.add(db_team)
-    db.commit()
-    db.refresh(db_team)
-    return db_team
+    try:
+        # 비밀번호 해싱을 비동기로 처리
+        hashed_password = await auth.get_password_hash_async(team.password)
+        
+        # 팀 객체 생성
+        db_team = models.Team(
+            name=team.name,
+            description=team.description,
+            type=team.type,
+            password=hashed_password
+        )
+        
+        # 데이터베이스 작업
+        db.add(db_team)
+        db.commit()
+        db.refresh(db_team)
+        
+        # 처리 시간 기록
+        elapsed = time.time() - start_time
+        logger.info(f"팀 생성 완료: {team.name}, 소요 시간: {elapsed:.3f}초")
+        
+        return db_team
+    except Exception as e:
+        db.rollback()
+        logger.error(f"팀 생성 중 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create team: {str(e)}")
 
 @router.post("/login", response_model=schemas.Token)
-def login_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
+async def login_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
+    # 요청 시작 시간 기록
+    start_time = time.time()
+    
+    logger.debug(f"팀 로그인 시도: {team.name}")
+    
     db_team = db.query(models.Team).filter(models.Team.name == team.name).first()
-    if not db_team or not auth.verify_password(team.password, db_team.password):
+    if not db_team:
+        logger.warning(f"존재하지 않는 팀 로그인 시도: {team.name}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect team name or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # 비밀번호 검증
+    if not auth.verify_password(team.password, db_team.password):
+        logger.warning(f"잘못된 비밀번호 입력: {team.name}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect team name or password",
@@ -43,6 +86,11 @@ def login_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
     access_token = auth.create_access_token(
         data={"sub": str(db_team.id)}, expires_delta=access_token_expires
     )
+    
+    # 처리 시간 기록
+    elapsed = time.time() - start_time
+    logger.info(f"팀 로그인 성공: {team.name}, 소요 시간: {elapsed:.3f}초")
+    
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/{team_id}", response_model=schemas.Team)

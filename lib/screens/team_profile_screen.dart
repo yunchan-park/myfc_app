@@ -423,7 +423,7 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
                       TextButton.icon(
                         onPressed: () => Navigator.pushNamed(
                           context,
-                          AppRoutes.registerPlayer,
+                          AppRoutes.playerManagement,
                         ),
                         icon: const Icon(Icons.person_add),
                         label: const Text('선수 등록'),
@@ -472,51 +472,77 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
   }
   
   Widget _buildPlayerTable() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      height: 300, // 명확한 높이 지정
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width - 32, // 화면 너비에서 패딩 제외한 크기
-          child: SingleChildScrollView(
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('순위')),
-                DataColumn(label: Text('이름')),
-                DataColumn(label: Text('번호')),
-                DataColumn(label: Text('MOM')),
-                DataColumn(label: Text('도움')),
-                DataColumn(label: Text('득점')),
-              ],
-              rows: _players.asMap().entries.map((entry) {
-                final index = entry.key;
-                final player = entry.value;
-                return DataRow(
-                  color: MaterialStateProperty.resolveWith<Color>(
-                    (Set<MaterialState> states) {
-                      return index % 2 == 0
-                          ? Colors.white
-                          : Colors.grey[100]!;
-                    },
-                  ),
-                  cells: [
-                    DataCell(Text('${index + 1}')),
-                    DataCell(Text(player.name)),
-                    DataCell(Text('${player.number}')),
-                    DataCell(Text('${player.momCount}')),
-                    DataCell(Text('${player.assistCount}')),
-                    DataCell(Text('${player.goalCount}')),
-                  ],
-                );
-              }).toList(),
-            ),
+    return Column(
+      children: [
+        // 테이블 헤더
+        Container(
+          height: 40,
+          color: Colors.grey[200],
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: const [
+              SizedBox(width: 50, child: Text('번호', style: TextStyle(fontWeight: FontWeight.bold))),
+              SizedBox(width: 16),
+              Expanded(child: Text('이름', style: TextStyle(fontWeight: FontWeight.bold))),
+              SizedBox(width: 80, child: Text('포지션', style: TextStyle(fontWeight: FontWeight.bold))),
+              SizedBox(width: 50, child: Text('골', style: TextStyle(fontWeight: FontWeight.bold))),
+              SizedBox(width: 50, child: Text('도움', style: TextStyle(fontWeight: FontWeight.bold))),
+            ],
           ),
         ),
-      ),
+        // 선수 목록
+        SizedBox(
+          height: 60.0 * _players.length,
+          child: ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _players.length,
+            itemBuilder: (context, index) {
+              final player = _players[index];
+              return Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[300]!),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 50,
+                        child: Text(
+                          player.number.toString(),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          player.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 80,
+                        child: Text(player.position ?? ''),
+                      ),
+                      SizedBox(
+                        width: 50,
+                        child: Text(player.goalCount.toString()),
+                      ),
+                      SizedBox(
+                        width: 50,
+                        child: Text(player.assistCount.toString()),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 } 

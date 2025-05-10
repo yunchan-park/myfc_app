@@ -873,4 +873,63 @@ class ApiService {
     
     return playerMap;
   }
+
+  static Future<http.Response> makeRequest(
+    String method,
+    String endpoint, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+  }) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final defaultHeaders = {
+      'Content-Type': 'application/json',
+      ...?headers,
+    };
+
+    print('\n${'='*50}');
+    print('Making $method request to: $url');
+    print('Headers: $defaultHeaders');
+    
+    if (body != null) {
+      print('Request Body: ${json.encode(body)}');
+    }
+
+    http.Response response;
+    try {
+      switch (method.toUpperCase()) {
+        case 'GET':
+          response = await http.get(url, headers: defaultHeaders);
+          break;
+        case 'POST':
+          response = await http.post(
+            url,
+            headers: defaultHeaders,
+            body: json.encode(body),
+          );
+          break;
+        case 'PUT':
+          response = await http.put(
+            url,
+            headers: defaultHeaders,
+            body: json.encode(body),
+          );
+          break;
+        case 'DELETE':
+          response = await http.delete(url, headers: defaultHeaders);
+          break;
+        default:
+          throw Exception('Unsupported HTTP method');
+      }
+
+      print('Response Status: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      print('${'='*50}\n');
+
+      return response;
+    } catch (e) {
+      print('Error: $e');
+      print('${'='*50}\n');
+      rethrow;
+    }
+  }
 }
