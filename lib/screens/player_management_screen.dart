@@ -372,61 +372,35 @@ class PlayerManagementScreenState extends State<PlayerManagementScreen> {
   
   @override
   Widget build(BuildContext context) {
-    print('PlayerManagementScreen.build 호출됨 - isLoading: $_isLoading, players 수: ${_players.length}');
-    
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 헤더 부분 (제목 + 추가 버튼)
-            Container(
-              height: 60,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '선수 목록',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+    return DefaultTextStyle(
+      style: Theme.of(context).textTheme.bodyMedium ?? const TextStyle(),
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 로딩 및 에러 처리
+                if (_isLoading)
+                  const Expanded(
+                    child: Center(
+                      child: CircularProgressIndicator(),
                     ),
+                  )
+                else if (_players.isEmpty)
+                  Expanded(
+                    child: _buildEmptyState(),
+                  )
+                else
+                  Expanded(
+                    child: _buildPlayerList(),
                   ),
-                  SizedBox(
-                    width: 120,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showPlayerModal(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('선수 추가'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // 로딩 및 에러 처리
-            if (_isLoading)
-              const Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (_players.isEmpty)
-              Expanded(
-                child: _buildEmptyState(),
-              )
-            else
-              Expanded(
-                child: _buildPlayerList(),
-              ),
-          ],
-        );
-      }
+              ],
+            );
+          }
+        ),
+      ),
     );
   }
   

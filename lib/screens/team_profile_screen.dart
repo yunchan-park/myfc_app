@@ -6,10 +6,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:myfc_app/config/routes.dart';
 import 'package:myfc_app/models/team.dart';
 import 'package:myfc_app/models/player.dart';
+import 'package:myfc_app/models/match.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:intl/intl.dart';
 
 class TeamProfileScreen extends StatefulWidget {
   const TeamProfileScreen({Key? key}) : super(key: key);
@@ -26,9 +28,18 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
   
   Team? _team;
   List<Player> _players = [];
+  List<Match> _matches = [];
   bool _isLoading = true;
   bool _isImageLoading = false;
   bool _hasError = false;
+  
+  // Match statistics
+  int _totalMatches = 0;
+  int _wins = 0;
+  int _draws = 0;
+  int _losses = 0;
+  int _totalGoalsScored = 0;
+  int _totalGoalsConceded = 0;
   
   // 외부에서 접근 가능한 메서드들
   Team? get team => _team;
@@ -37,75 +48,43 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTeam();
+    _loadData();
   }
   
-  Future<void> _loadTeam() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _hasError = false;
     });
     
     try {
-      // Try to get data from cache first
-      final cachedTeam = await _storageService.getCachedTeam();
-      final cachedPlayers = await _storageService.getCachedPlayers();
-      
-      if (cachedTeam != null) {
-        setState(() {
-          _team = cachedTeam;
-        });
-      }
-      
-      if (cachedPlayers.isNotEmpty) {
-        setState(() {
-          _players = cachedPlayers;
-        });
-      }
-      
-      // Load from API
       final teamId = await _authService.getTeamId();
       final token = await _authService.getToken();
       
       if (teamId != null && token != null) {
-        try {
-          final team = await _apiService.getTeam(teamId, token);
-          final players = await _apiService.getTeamPlayers(teamId, token);
-          
-          // Update cache
-          _storageService.cacheTeam(team);
-          _storageService.cachePlayers(players);
-          
-          if (mounted) {
-            setState(() {
-              _team = team;
-              _players = players;
-              _isLoading = false;
-            });
-          }
-        } catch (e) {
-          print('Error loading team profile: $e');
-          if (mounted) {
-            Helpers.showSnackBar(
-              context,
-              '데이터를 불러오는 데 실패했습니다.',
-              isError: true,
-            );
-            setState(() {
-              _hasError = true;
-              _isLoading = false;
-            });
-          }
-        }
-      } else {
+        // Load team data
+        final team = await _apiService.getTeam(teamId, token);
+        
+        // Load match data
+        final matches = await _apiService.getTeamMatches(teamId, token);
+        
+        // Load player data
+        final players = await _apiService.getTeamPlayers(teamId, token);
+        
+        // Calculate statistics
+        _calculateMatchStatistics(matches);
+        
         if (mounted) {
           setState(() {
-            _hasError = true;
+            _team = team;
+            _matches = matches;
+            _players = players;
             _isLoading = false;
           });
         }
       }
     } catch (e) {
+      print('Error loading team profile: $e');
       if (mounted) {
         Helpers.showSnackBar(
           context,
@@ -120,51 +99,35 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
     }
   }
   
-  // 외부에서 Team 데이터를 강제로 다시 로드하는 메서드
-  Future<void> refreshTeamData() async {
-    await _loadTeam();
-  }
-  
-  // 외부에서 접근 가능한 Team 데이터 가져오기 메서드
-  Future<Team?> getTeam() async {
-    if (_team == null) {
-      await _loadTeam();
-    }
-    return _team;
-  }
-  
-  Future<void> _pickImage() async {
-    final pickedFile = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
+  void _calculateMatchStatistics(List<Match> matches) {
+    _totalMatches = matches.length;
+    _wins = matches.where((m) => m.getResult() == '승').length;
+    _draws = matches.where((m) => m.getResult() == '무').length;
+    _losses = matches.where((m) => m.getResult() == '패').length;
     
-    if (pickedFile != null && _team != null) {
-      setState(() {
-        _isImageLoading = true;
-      });
-      
-      try {
-        final token = await _authService.getToken();
-        final imageFile = File(pickedFile.path);
-        await _apiService.uploadTeamImage(_team!.id, imageFile, token);
-        await _loadTeam(); // Reload team to get new image URL
-      } catch (e) {
-        if (mounted) {
-          Helpers.showSnackBar(
-            context,
-            '이미지 업로드에 실패했습니다.',
-            isError: true,
-          );
+    _totalGoalsScored = matches.fold(0, (sum, m) => sum + m.ourScore);
+    _totalGoalsConceded = matches.fold(0, (sum, m) => sum + m.opponentScore);
+  }
+  
+  // 최근 매치 상세 정보 가져오기
+  Future<List<Match>> _getRecentMatches(int limit) async {
+    try {
+      final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      if (teamId != null && token != null) {
+        final matches = await _apiService.getTeamMatches(teamId, token);
+        final recent = matches.take(limit).toList();
+        List<Match> detailed = [];
+        for (var match in recent) {
+          final detail = await _apiService.getMatchDetail(match.id, token);
+          detailed.add(detail);
         }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isImageLoading = false;
-          });
-        }
+        return detailed;
       }
+    } catch (e) {
+      print('매치 데이터 가져오기 실패: $e');
     }
+    return [];
   }
   
   @override
@@ -183,7 +146,7 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
             const Text('구단 정보를 불러올 수 없습니다.'),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _loadTeam,
+              onPressed: _loadData,
               child: const Text('다시 시도'),
             ),
           ],
@@ -191,358 +154,475 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
       );
     }
     
-    return SizedBox.expand(
-      child: CustomScrollView(
-        slivers: [
-          // Team header
-          SliverToBoxAdapter(
-            child: Container(
-              height: 200,
-              width: double.infinity,
-              child: Stack(
-                clipBehavior: Clip.hardEdge,
-                children: [
-                  // Background image
-                  Positioned.fill(
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        image: _team!.imageUrl != null
-                            ? DecorationImage(
-                                image: CachedNetworkImageProvider(
-                                  ApiService.baseUrl + _team!.imageUrl!,
-                                ),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: _isImageLoading
-                          ? Center(
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
-                  ),
-                  
-                  // Edit button
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pushNamed(
-                        context,
-                        AppRoutes.editTeam,
-                        arguments: _team,
-                      ),
-                      icon: const Icon(Icons.edit),
-                      label: const Text('정보 수정'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black.withOpacity(0.7),
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  
-                  // Team info overlay
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.7),
-                            Colors.transparent,
-                          ],
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // 상단 네이비 영역 대신 최근 매치 카드 슬라이더
+            FutureBuilder<List<Match>>(
+              future: _getRecentMatches(5),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Container(
+                    height: 400,
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  return MatchCardsSlider(
+                    matches: snapshot.data!,
+                    teamName: _team?.name ?? '',
+                  );
+                }
+                return Container(
+                  height: 400,
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.sports_soccer, size: 48, color: Color(0xFF9CA3AF)),
+                        SizedBox(height: 16),
+                        Text(
+                          '등록된 매치가 없습니다',
+                          style: TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Logo
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey[300],
-                              image: _team!.logoUrl != null
-                                  ? DecorationImage(
-                                      image: CachedNetworkImageProvider(
-                                        ApiService.baseUrl + _team!.logoUrl!,
-                                      ),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: _team!.logoUrl == null
-                                ? const Icon(
-                                    Icons.sports_soccer,
-                                    size: 40,
-                                    color: Colors.grey,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 8),
-                          
-                          // Team name
-                          Text(
-                            _team!.name,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          
-                          // Team description
-                          Text(
-                            _team!.description,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          ),
-          
-          // Gallery section
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        '갤러리',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: _pickImage,
-                        icon: const Icon(Icons.add_photo_alternate),
-                        label: const Text('사진 추가'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: DottedBorder(
-                      borderType: BorderType.RRect,
-                      radius: const Radius.circular(12),
-                      color: Colors.grey,
-                      strokeWidth: 1,
-                      dashPattern: const [6, 3],
-                      child: Container(
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          image: _team!.imageUrl != null
-                              ? DecorationImage(
-                                  image: CachedNetworkImageProvider(
-                                    ApiService.baseUrl + _team!.imageUrl!,
-                                  ),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: _team!.imageUrl == null
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(
-                                    Icons.add_photo_alternate,
-                                    size: 40,
-                                    color: Colors.grey,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    '구단의 추억사진을 공유해주세요',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : null,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Players section
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        '선수단',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          AppRoutes.playerManagement,
-                        ),
-                        icon: const Icon(Icons.person_add),
-                        label: const Text('선수 등록'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Player list
-                  _players.isEmpty
-                      ? Center(
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 24),
-                              const Icon(
-                                Icons.people,
-                                size: 48,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                '아직 등록된 선수가 없습니다',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.registerPlayer,
-                                ),
-                                child: const Text('선수 등록하기'),
-                              ),
-                            ],
-                          ),
-                        )
-                      : _buildPlayerTable(),
-                ],
-              ),
-            ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            _buildPlayerStatsCard(context),
+            const SizedBox(height: 16),
+            _buildMatchStatsCard(context),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
   
-  Widget _buildPlayerTable() {
-    return Column(
-      children: [
-        // 테이블 헤더
-        Container(
-          height: 40,
-          color: Colors.grey[200],
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+  Widget _buildPlayerStatsCard(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.pushNamed(context, '/player-management');
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Row(
-            children: const [
-              SizedBox(width: 50, child: Text('번호', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 16),
-              Expanded(child: Text('이름', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 80, child: Text('포지션', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 50, child: Text('골', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 50, child: Text('도움', style: TextStyle(fontWeight: FontWeight.bold))),
+            children: [
+              Text(
+                '${_players.length}명',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '총 선수',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+              ),
+              const Spacer(),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF9CA3AF)),
             ],
           ),
         ),
-        // 선수 목록
-        SizedBox(
-          height: 60.0 * _players.length,
-          child: ListView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _players.length,
-            itemBuilder: (context, index) {
-              final player = _players[index];
-              return Container(
-                height: 60,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey[300]!),
+      ),
+    );
+  }
+  
+  Widget _buildMatchStatsCard(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '$_totalMatches매치',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(width: 16),
+                _buildResultChip('승', _wins, const Color(0xFF3B82F6)),
+                const SizedBox(width: 8),
+                _buildResultChip('무', _draws, const Color(0xFF9CA3AF)),
+                const SizedBox(width: 8),
+                _buildResultChip('패', _losses, const Color(0xFFEF4444)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildProgressBar(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildStatText('승', _wins, _totalMatches, const Color(0xFF3B82F6)),
+                      const SizedBox(height: 8),
+                      _buildStatText('무', _draws, _totalMatches, const Color(0xFF9CA3AF)),
+                      const SizedBox(height: 8),
+                      _buildStatText('패', _losses, _totalMatches, const Color(0xFFEF4444)),
+                    ],
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      SizedBox(
-                        width: 50,
-                        child: Text(
-                          player.number.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          player.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 80,
-                        child: Text(player.position ?? ''),
-                      ),
-                      SizedBox(
-                        width: 50,
-                        child: Text(player.goalCount.toString()),
-                      ),
-                      SizedBox(
-                        width: 50,
-                        child: Text(player.assistCount.toString()),
+                      _buildScoreText('합계', '$_totalGoalsScored 득점', '$_totalGoalsConceded 실점'),
+                      const SizedBox(height: 8),
+                      _buildScoreText(
+                        '평균',
+                        '${(_totalGoalsScored / (_totalMatches == 0 ? 1 : _totalMatches)).toStringAsFixed(1)} 득점',
+                        '${(_totalGoalsConceded / (_totalMatches == 0 ? 1 : _totalMatches)).toStringAsFixed(1)} 실점',
                       ),
                     ],
                   ),
                 ),
-              );
-            },
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildResultChip(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        '$label $count',
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildProgressBar() {
+    final winRatio = _totalMatches > 0 ? _wins / _totalMatches : 0.0;
+    final drawRatio = _totalMatches > 0 ? _draws / _totalMatches : 0.0;
+    final lossRatio = _totalMatches > 0 ? _losses / _totalMatches : 0.0;
+    
+    return Row(
+      children: [
+        Expanded(
+          flex: (winRatio * 100).round(),
+          child: Container(
+            height: 8,
+            color: const Color(0xFF3B82F6),
+          ),
+        ),
+        Expanded(
+          flex: (drawRatio * 100).round(),
+          child: Container(
+            height: 8,
+            color: const Color(0xFF9CA3AF),
+          ),
+        ),
+        Expanded(
+          flex: (lossRatio * 100).round(),
+          child: Container(
+            height: 8,
+            color: const Color(0xFFEF4444),
           ),
         ),
       ],
+    );
+  }
+  
+  Widget _buildStatText(String label, int count, int total, Color color) {
+    final percentage = total > 0 ? (count / total * 100).round() : 0;
+    return Text(
+      '$label $count $percentage%',
+      style: TextStyle(
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+  
+  Widget _buildScoreText(String label, String scored, String conceded) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          scored,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          conceded,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// 매치 카드 슬라이더 위젯
+class MatchCardsSlider extends StatefulWidget {
+  final List<Match> matches;
+  final String teamName;
+  const MatchCardsSlider({Key? key, required this.matches, required this.teamName}) : super(key: key);
+
+  @override
+  State<MatchCardsSlider> createState() => _MatchCardsSliderState();
+}
+
+class _MatchCardsSliderState extends State<MatchCardsSlider> {
+  final PageController _pageController = PageController(viewportFraction: 0.9);
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 400,
+      child: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: widget.matches.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                final match = widget.matches[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: MatchCardBanner(
+                    match: match,
+                    teamName: widget.teamName,
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/match_detail',
+                        arguments: match.id,
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              widget.matches.length,
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: _currentIndex == index ? 24 : 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: _currentIndex == index
+                      ? const Color(0xFF3B82F6)
+                      : const Color(0xFFD1D5DB),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+// 개별 매치 카드 배너 위젯
+class MatchCardBanner extends StatelessWidget {
+  final Match match;
+  final String teamName;
+  final VoidCallback? onTap;
+  const MatchCardBanner({Key? key, required this.match, required this.teamName, this.onTap}) : super(key: key);
+
+  String _formatDate(String date) {
+    try {
+      final dt = DateTime.parse(date);
+      return DateFormat('yyyy.MM.dd').format(dt);
+    } catch (_) {
+      return date;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final goals = match.goals ?? [];
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 350,
+        height: 400,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              // 배경 이미지
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/soccer_field_background.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
+              // 그라데이션 오버레이
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.2),
+                        Colors.black.withOpacity(0.8),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // 내용
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 상단 - 날짜
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: Text(
+                          _formatDate(match.date),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      // 중앙 - 팀명과 스코어
+                      Column(
+                        children: [
+                          Text(
+                            '$teamName vs ${match.opponent}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            match.score,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // 하단 - 득점자/어시스트
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 득점자
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '득점자',
+                                  style: TextStyle(
+                                    color: Color(0xFFD1D5DB),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                ...goals.map((goal) => Text(
+                                  goal.player?.name ?? '',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE5E7EB),
+                                    fontSize: 14,
+                                  ),
+                                )),
+                              ],
+                            ),
+                          ),
+                          // 어시스트
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const Text(
+                                  '어시스트',
+                                  style: TextStyle(
+                                    color: Color(0xFFD1D5DB),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                ...goals.where((goal) => goal.assistPlayer != null)
+                                    .map((goal) => Text(
+                                  goal.assistPlayer!.name,
+                                  style: const TextStyle(
+                                    color: Color(0xFFE5E7EB),
+                                    fontSize: 14,
+                                  ),
+                                )),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 } 

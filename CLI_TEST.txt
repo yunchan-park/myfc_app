@@ -1,26 +1,52 @@
+# 기본 설정
 SERVER_URL="http://localhost:8000"; CONNECT_TIMEOUT=5; MAX_TIMEOUT=15
 
-echo "== 팀 생성 =="; echo "팀을 생성합니다. 팀 이름, 설명, 유형, 비밀번호를 서버에 전송하고, 생성된 팀의 ID를 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT -X POST $SERVER_URL/teams/create -H "Content-Type: application/json" -d '{"name":"테스트팀011220","description":"테스트용 팀입니다","type":"축구","password":"1234"}' | tee team.json
-TEAM_ID=$(jq '.id' team.json); echo "팀 ID: $TEAM_ID"
+# 1. 팀 생성 (정보의 명확성 & 정보 교환의 명확성)
+echo "== 팀 생성 =="
+echo "클라이언트: 팀 이름, 설명, 유형, 비밀번호를 서버에 전송"
+curl -v -X POST $SERVER_URL/teams/create \
+  -H "Content-Type: application/json" \
+  -d '{"name":"테스트팀3분","description":"발표용 팀입니다","type":"축구","password":"1234"}' | tee team.json
+echo "서버: 생성된 팀의 ID 반환"
+TEAM_ID=$(jq '.id' team.json); echo "팀 ID: $TEAM_ID" 
 
-echo "== 팀 로그인 =="; echo "로그인을 시도합니다. 팀 이름과 비밀번호를 전송하고, 인증 토큰을 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT -X POST $SERVER_URL/teams/login -H "Content-Type: application/json" -d '{"name":"테스트팀011220","password":"1234","description":"","type":""}' | tee token.json
+# 2. 팀 로그인 - 토큰 획득
+echo "== 팀 로그인 =="
+curl -X POST $SERVER_URL/teams/login \
+  -H "Content-Type: application/json" \
+  -d '{"name":"테스트팀3분","password":"1234","description":"","type":""}' | tee token.json
 TOKEN=$(jq -r '.access_token' token.json); echo "인증 토큰: $TOKEN"
 
-echo "== 선수 등록 - 김도영 =="; echo "선수를 등록합니다. 이름, 번호, 포지션, 팀 ID를 서버에 전송하고, 생성된 선수 ID를 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT -X POST $SERVER_URL/players/create -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"name":"김도영","number":10,"position":"FW","team_id":'$TEAM_ID'}' | tee player1.json
-PLAYER1_ID=$(jq '.id' player1.json); echo "선수1 ID: $PLAYER1_ID"
+# 3. 선수 등록 (기능의 명확성)
+echo "== 선수 등록 =="
+echo "클라이언트: 선수 이름, 번호, 포지션, 팀 ID 전송"
+curl -X POST $SERVER_URL/players/create \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"김도영","number":10,"position":"FW","team_id":'$TEAM_ID'}' | tee player1.json
+echo "서버: 생성된 선수 ID 반환"
+PLAYER1_ID=$(jq '.id' player1.json); echo "선수 ID: $PLAYER1_ID"
 
-echo "== 선수 등록 - 양현종 =="; echo "두 번째 선수를 등록합니다. 이름, 번호, 포지션, 팀 ID를 서버에 전송하고, 생성된 선수 ID를 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT -X POST $SERVER_URL/players/create -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"name":"양현종","number":11,"position":"DF","team_id":'$TEAM_ID'}' | tee player2.json
-PLAYER2_ID=$(jq '.id' player2.json); echo "선수2 ID: $PLAYER2_ID"
+# 4. 선수 정보 수정 (기능의 명확성)
+echo "== 선수 정보 수정 =="
+echo "클라이언트: 수정된 선수 정보 전송"
+curl -X PUT $SERVER_URL/players/$PLAYER1_ID \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"김도영수정","number":10,"position":"MF","team_id":'$TEAM_ID'}' | tee player1_update.json
+echo "서버: 수정된 선수 정보 반환 - 이름과 포지션이 변경됨"
 
-echo "== 선수 목록 조회 =="; echo "등록된 선수 목록을 조회합니다. 팀 ID를 서버에 전송하고, 선수 목록을 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT $SERVER_URL/players/team/$TEAM_ID -H "Authorization: Bearer $TOKEN" | tee players_list.json
-echo "== 선수 정보 수정 =="; echo "김도영 선수의 정보를 수정합니다. 수정된 이름, 번호, 포지션을 전송하고, 수정된 정보를 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT -X PUT $SERVER_URL/players/$PLAYER1_ID -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"name":"김도영수정","number":10,"position":"FW","team_id":'$TEAM_ID'}' | tee player1_update.json
-
-
-echo "== 경기 등록 =="; echo "경기를 등록합니다. 경기 날짜, 상대팀, 점수, 선수들 정보를 전송하고, 생성된 경기 ID를 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT -X POST $SERVER_URL/matches/create -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"date":"2025-06-01T15:00:00","opponent":"상대팀","score":"2:1","team_id":'$TEAM_ID',"player_ids":['$PLAYER1_ID','$PLAYER2_ID'],"quarter_scores":[{"quarter":1,"our_score":1,"opponent_score":0},{"quarter":2,"our_score":1,"opponent_score":1},{"quarter":3,"our_score":0,"opponent_score":0},{"quarter":4,"our_score":0,"opponent_score":0}]}' | tee match.json
+# 5. 경기 등록 (전체적인 등급)
+echo "== 경기 등록 =="
+echo "클라이언트: 경기 정보 전송"
+curl -X POST $SERVER_URL/matches/create \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"date":"2025-06-01T15:00:00","opponent":"상대팀","score":"2:1","team_id":'$TEAM_ID',"player_ids":['$PLAYER1_ID'],"quarter_scores":[{"quarter":1,"our_score":1,"opponent_score":0},{"quarter":2,"our_score":1,"opponent_score":1}]}' | tee match.json
 MATCH_ID=$(jq '.id' match.json); echo "경기 ID: $MATCH_ID"
-echo "== 경기 목록 조회 =="; echo "등록된 경기 목록을 조회합니다. 팀 ID를 서버에 전송하고, 경기 목록을 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT $SERVER_URL/matches/team/$TEAM_ID -H "Authorization: Bearer $TOKEN" | tee matches_list.json
-echo "== 경기 상세 조회 =="; echo "특정 경기를 상세 조회합니다. 경기 ID를 전송하고, 경기 상세 정보를 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT $SERVER_URL/matches/$MATCH_ID/detail -H "Authorization: Bearer $TOKEN" | tee match_detail.json
 
-
-
-echo "== 팀 삭제 =="; echo "팀을 삭제합니다. 삭제할 팀 ID를 전송하고, 삭제된 팀 정보를 받습니다."; curl -v --connect-timeout $CONNECT_TIMEOUT --max-time $MAX_TIMEOUT -X DELETE $SERVER_URL/teams/$TEAM_ID -H "Authorization: Bearer $TOKEN" | tee team_delete.json
+# 6. 경기 상세 조회 (전체적인 등급)
+echo "== 경기 상세 조회 =="
+curl $SERVER_URL/matches/$MATCH_ID/detail \
+  -H "Authorization: Bearer $TOKEN" | tee match_detail.json
+echo "서버: 경기 상세 정보 반환 - 점수, 쿼터별 점수, 참가 선수 등 모든 경기 정보 포함"

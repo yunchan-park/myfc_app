@@ -105,112 +105,105 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-    
-    if (_matches.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.sports_soccer,
-              size: 80,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '아직 등록된 경기가 없어요!',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pushNamed(
-                context,
-                AppRoutes.addMatchStep1,
-              ).then((_) => _loadMatches()),
-              child: const Text('매치 추가하기'),
-            ),
-          ],
-        ),
-      );
-    }
-    
-    // Group matches by month
+    // 월별로 그룹화 및 정렬
     final groupedMatches = Helpers.groupByMonth<Match>(
       _matches,
       (match) => DateFormat('yyyy-MM-dd').parse(match.date),
     );
-    
-    // Sort keys in descending order (newest first)
     final sortedKeys = groupedMatches.keys.toList()
       ..sort((a, b) => b.compareTo(a));
     
-    return SizedBox.expand(
-      child: Column(
-        children: [
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadMatches,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: sortedKeys.length,
-                itemBuilder: (context, index) {
-                  final monthKey = sortedKeys[index];
-                  final monthMatches = groupedMatches[monthKey]!;
-                  
-                  // Sort matches by date (newest first)
-                  monthMatches.sort((a, b) => b.date.compareTo(a.date));
-                  
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : _matches.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Month header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          Helpers.getMonthHeader(monthMatches[0].date),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                      const Icon(
+                        Icons.sports_soccer,
+                        size: 80,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '아직 등록된 경기가 없어요!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.addMatchStep1,
+                        ).then((_) => _loadMatches()),
+                        child: const Text('매치 추가하기'),
+                      ),
+                    ],
+                  ),
+                )
+              : SizedBox.expand(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: _loadMatches,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: sortedKeys.length,
+                            itemBuilder: (context, index) {
+                              final monthKey = sortedKeys[index];
+                              final monthMatches = groupedMatches[monthKey]!;
+                              // Sort matches by date (newest first)
+                              monthMatches.sort((a, b) => b.date.compareTo(a.date));
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Month header
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    child: Text(
+                                      Helpers.getMonthHeader(monthMatches[0].date),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  // Match list for this month
+                                  ...monthMatches.map((match) => _buildMatchItem(match)).toList(),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
-                      
-                      // Match list for this month
-                      ...monthMatches.map((match) => _buildMatchItem(match)).toList(),
+                      // Add match button
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.addMatchStep1,
+                          ).then((_) => _loadMatches()),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          child: const Text('매치 추가하기'),
+                        ),
+                      ),
                     ],
-                  );
-                },
-              ),
-            ),
-          ),
-          
-          // Add match button
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            child: ElevatedButton(
-              onPressed: () => Navigator.pushNamed(
-                context,
-                AppRoutes.addMatchStep1,
-              ).then((_) => _loadMatches()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: const Text('매치 추가하기'),
-            ),
-          ),
-        ],
-      ),
+                  ),
+                ),
     );
   }
   

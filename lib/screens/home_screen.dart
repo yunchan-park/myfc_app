@@ -129,8 +129,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(_titles[_currentIndex]),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        foregroundColor: Colors.black87,
+        centerTitle: true,
+        title: Text(
+          _titles[_currentIndex],
+          style: Theme.of(context).appBarTheme.titleTextStyle,
+        ),
         actions: [_buildTrailingButton(_currentIndex)],
       ),
       body: Stack(
@@ -146,6 +154,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFF3B82F6),
+        unselectedItemColor: const Color(0xFF9CA3AF),
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
