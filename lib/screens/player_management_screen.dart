@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:myfc_app/widgets/common/app_button.dart';
+import 'package:myfc_app/widgets/common/app_input.dart';
+import 'package:myfc_app/widgets/common/app_card.dart';
 
 class PlayerManagementScreen extends StatefulWidget {
   const PlayerManagementScreen({Key? key}) : super(key: key);
@@ -118,8 +122,9 @@ class PlayerManagementScreenState extends State<PlayerManagementScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -136,22 +141,16 @@ class PlayerManagementScreenState extends State<PlayerManagementScreen> {
               children: [
                 Text(
                   player == null ? '선수 추가' : '선수 정보 수정',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTextStyles.displaySmall,
                 ),
                 const SizedBox(height: 24),
                 Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      TextFormField(
+                      AppInput(
                         controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: '이름',
-                          border: OutlineInputBorder(),
-                        ),
+                        hint: '이름',
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '이름을 입력해주세요';
@@ -160,12 +159,9 @@ class PlayerManagementScreenState extends State<PlayerManagementScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
+                      AppInput(
                         controller: _numberController,
-                        decoration: const InputDecoration(
-                          labelText: '번호',
-                          border: OutlineInputBorder(),
-                        ),
+                        hint: '번호',
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -178,12 +174,9 @@ class PlayerManagementScreenState extends State<PlayerManagementScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
+                      AppInput(
                         controller: _positionController,
-                        decoration: const InputDecoration(
-                          labelText: '포지션 (GK, DF, MF, FW)',
-                          border: OutlineInputBorder(),
-                        ),
+                        hint: '포지션 (GK, DF, MF, FW)',
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return '포지션을 입력해주세요';
@@ -192,20 +185,11 @@ class PlayerManagementScreenState extends State<PlayerManagementScreen> {
                         },
                       ),
                       const SizedBox(height: 24),
-                      _isSubmitting
-                          ? const CircularProgressIndicator()
-                          : SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton(
-                                onPressed: () => _savePlayer(player),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: Text(player == null ? '추가하기' : '수정하기'),
-                              ),
-                            ),
+                      AppButton(
+                        text: player == null ? '추가하기' : '수정하기',
+                        onPressed: _isSubmitting ? null : () => _savePlayer(player),
+                        isLoading: _isSubmitting,
+                      ),
                       const SizedBox(height: 16),
                     ],
                   ),
@@ -349,161 +333,105 @@ class PlayerManagementScreenState extends State<PlayerManagementScreen> {
   
   @override
   Widget build(BuildContext context) {
-    return DefaultTextStyle(
-      style: Theme.of(context).textTheme.bodyMedium ?? const TextStyle(),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_isLoading)
-                  const Expanded(
-                    child: Center(
-                      child: CircularProgressIndicator(),
+    if (_isLoading) {
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        ),
+      );
+    }
+
+    if (_players.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.people,
+              size: 48,
+              color: AppColors.neutral,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '등록된 선수가 없습니다',
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.neutral,
+              ),
+            ),
+            const SizedBox(height: 24),
+            AppButton(
+              text: '선수 추가하기',
+              onPressed: _showPlayerModal,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _players.length,
+      itemBuilder: (context, index) {
+        final player = _players[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: AppCard(
+            onTap: () => _showPlayerModal(player),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: Text(
+                      player.number.toString(),
+                      style: AppTextStyles.displaySmall.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
-                  )
-                else if (_players.isEmpty)
-                  Expanded(
-                    child: _buildEmptyState(),
-                  )
-                else
-                  Expanded(
-                    child: _buildPlayerList(),
                   ),
-              ],
-            );
-          }
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.sports_soccer,
-            size: 64,
-            color: Colors.grey,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '등록된 선수가 없습니다',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => _showPlayerModal(),
-            icon: const Icon(Icons.add),
-            label: const Text('선수 추가하기'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildPlayerList() {
-    return Column(
-      children: [
-        Container(
-          height: 40,
-          color: Colors.grey[200],
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: const [
-              SizedBox(width: 50, child: Text('번호', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 16),
-              Expanded(child: Text('이름', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 80, child: Text('포지션', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 50, child: Text('골', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 50, child: Text('도움', style: TextStyle(fontWeight: FontWeight.bold))),
-              SizedBox(width: 80),
-            ],
-          ),
-        ),
-        
-        Expanded(
-          child: ListView.builder(
-            itemCount: _players.length,
-            itemBuilder: (context, index) {
-              final player = _players[index];
-              return Container(
-                height: 60,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey[300]!),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 50,
-                        child: Text(
-                          player.number.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
                           player.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: AppTextStyles.bodyLarge,
                         ),
-                      ),
-                      SizedBox(
-                        width: 80,
-                        child: Text(player.position),
-                      ),
-                      SizedBox(
-                        width: 50,
-                        child: Text(player.goalCount.toString()),
-                      ),
-                      SizedBox(
-                        width: 50,
-                        child: Text(player.assistCount.toString()),
-                      ),
-                      SizedBox(
-                        width: 80,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, size: 20),
-                              onPressed: () => _showPlayerModal(player),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                            const SizedBox(width: 12),
-                            IconButton(
-                              icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                              onPressed: () => _confirmDeletePlayer(player),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
+                        const SizedBox(height: 4),
+                        Text(
+                          player.position,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.neutral,
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        color: AppColors.primary,
+                        tooltip: '수정',
+                        onPressed: () => _showPlayerModal(player),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, size: 20),
+                        color: Colors.red,
+                        tooltip: '삭제',
+                        onPressed: () => _confirmDeletePlayer(player),
                       ),
                     ],
                   ),
-                ),
-              );
-            },
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:myfc_app/config/routes.dart';
+import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/models/team.dart';
 import 'package:myfc_app/screens/team_profile_screen.dart';
 import 'package:myfc_app/screens/player_management_screen.dart';
@@ -8,6 +9,7 @@ import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:myfc_app/widgets/common/app_button.dart';
 
 final GlobalKey<PlayerManagementScreenState> playerManagementScreenKey =
     GlobalKey<PlayerManagementScreenState>();
@@ -38,16 +40,31 @@ class _HomeScreenState extends State<HomeScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠습니까?'),
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Text(
+          '로그아웃',
+          style: AppTextStyles.displaySmall,
+        ),
+        content: Text(
+          '정말 로그아웃 하시겠습니까?',
+          style: AppTextStyles.bodyLarge,
+        ),
         actions: [
           TextButton(
-            child: const Text('취소'),
+            child: Text(
+              '취소',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.neutral),
+            ),
             onPressed: () => Navigator.of(context).pop(false),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('로그아웃'),
+            child: Text(
+              '로그아웃',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+            ),
             onPressed: () => Navigator.of(context).pop(true),
           ),
         ],
@@ -64,10 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   void _showAddPlayerModal() {
     if (playerManagementScreenKey.currentState != null) {
-      print('HomeScreen: 선수 추가 모달 호출');
       playerManagementScreenKey.currentState!.showAddPlayerModal();
-    } else {
-      print('HomeScreen: playerManagementScreenKey.currentState가 null입니다');
     }
   }
 
@@ -124,15 +138,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppColors.white,
+        elevation: 0,
         centerTitle: true,
         title: Text(
           _titles[_currentIndex],
-          style: Theme.of(context).appBarTheme.titleTextStyle,
+          style: AppTextStyles.displayMedium,
         ),
         actions: [_buildTrailingButton(_currentIndex)],
       ),
@@ -141,18 +154,20 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildTabContent(_currentIndex),
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.3),
-              child: const Center(
-                child: CircularProgressIndicator(),
+              color: AppColors.darkGray.withOpacity(0.3),
+              child: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
               ),
             ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF3B82F6),
-        unselectedItemColor: const Color(0xFF9CA3AF),
+        backgroundColor: AppColors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.neutral,
         selectedFontSize: 12,
         unselectedFontSize: 12,
         showSelectedLabels: true,
@@ -202,10 +217,12 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.edit),
+              color: AppColors.primary,
               onPressed: _navigateToEditTeam,
             ),
             IconButton(
               icon: const Icon(Icons.logout),
+              color: AppColors.neutral,
               onPressed: _logout,
             ),
           ],
@@ -216,10 +233,12 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.add),
+              color: AppColors.primary,
               onPressed: _showAddPlayerModal,
             ),
             IconButton(
               icon: const Icon(Icons.logout),
+              color: AppColors.neutral,
               onPressed: _logout,
             ),
           ],
@@ -230,6 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.add),
+              color: AppColors.primary,
               onPressed: () => Navigator.pushNamed(
                 context,
                 AppRoutes.addMatchStep1,
@@ -237,6 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.logout),
+              color: AppColors.neutral,
               onPressed: _logout,
             ),
           ],
@@ -244,6 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return IconButton(
           icon: const Icon(Icons.logout),
+          color: AppColors.neutral,
           onPressed: _logout,
         );
     }

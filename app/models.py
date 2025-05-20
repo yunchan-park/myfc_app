@@ -72,6 +72,8 @@ class Goal(Base):
     quarter = Column(Integer)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    scorer_name = Column(String, nullable=True)
+    assist_name = Column(String, nullable=True)
 
     match = relationship("Match", back_populates="goals")
     player = relationship("Player", foreign_keys=[player_id], back_populates="goals")

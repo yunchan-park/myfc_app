@@ -1,28 +1,5 @@
 import 'package:flutter/material.dart';
-
-class QuarterScore {
-  final int ourScore;
-  final int opponentScore;
-  
-  const QuarterScore({
-    required this.ourScore,
-    required this.opponentScore,
-  });
-  
-  factory QuarterScore.fromJson(Map<String, dynamic> json) {
-    return QuarterScore(
-      ourScore: json['our_score'],
-      opponentScore: json['opponent_score'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'our_score': ourScore,
-      'opponent_score': opponentScore,
-    };
-  }
-}
+import 'package:myfc_app/models/match.dart';
 
 class QuarterScoreWidget extends StatelessWidget {
   final Map<int, QuarterScore> quarterScores;

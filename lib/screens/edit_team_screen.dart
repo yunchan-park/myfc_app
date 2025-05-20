@@ -2,10 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/models/team.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/utils/validators.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:myfc_app/widgets/common/app_button.dart';
+import 'package:myfc_app/widgets/common/app_input.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class EditTeamScreen extends StatefulWidget {
@@ -145,14 +148,14 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('구단 정보 수정'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.grey[300],
-            height: 1,
-          ),
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          '구단 정보 수정',
+          style: AppTextStyles.displaySmall,
         ),
       ),
       body: SingleChildScrollView(
@@ -175,7 +178,7 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
                         children: [
                           CircleAvatar(
                             radius: 60,
-                            backgroundColor: Colors.grey[300],
+                            backgroundColor: AppColors.neutral.withOpacity(0.1),
                             backgroundImage: _logoFile != null
                                 ? FileImage(_logoFile!)
                                 : widget.team.logoUrl != null
@@ -184,10 +187,10 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
                                       ) as ImageProvider
                                     : null,
                             child: (_logoFile == null && widget.team.logoUrl == null)
-                                ? const Icon(
+                                ? Icon(
                                     Icons.sports_soccer,
                                     size: 60,
-                                    color: Colors.grey,
+                                    color: AppColors.neutral,
                                   )
                                 : null,
                           ),
@@ -196,14 +199,21 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
                             right: 0,
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.white,
+                                color: AppColors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.neutral.withOpacity(0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.camera_alt,
                                 size: 20,
-                                color: Colors.black,
+                                color: AppColors.primary,
                               ),
                             ),
                           ),
@@ -215,12 +225,9 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
                 const SizedBox(height: 32),
                 
                 // Team type selection
-                const Text(
+                Text(
                   '구단 유형',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTextStyles.bodyLarge,
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -235,50 +242,28 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
                 const SizedBox(height: 24),
                 
                 // Team name input
-                TextFormField(
+                AppInput(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: '구단 이름',
-                    hintText: '구단 이름을 입력해주세요 (최대 10자)',
-                  ),
+                  hint: '구단 이름을 입력해주세요 (최대 10자)',
                   validator: Validators.validateTeamName,
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 16),
                 
                 // Team description input
-                TextFormField(
+                AppInput(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: '구단 소개글',
-                    hintText: '구단 소개글을 작성해주세요 (최대 20자)',
-                  ),
-                  validator: Validators.validateTeamDescription,
+                  hint: '구단 소개를 입력해주세요',
+                  maxLines: 3,
                   textInputAction: TextInputAction.next,
-                  maxLines: 2,
                 ),
                 const SizedBox(height: 16),
                 
                 // Password input
-                TextFormField(
+                AppInput(
                   controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: '비밀번호',
-                    hintText: '변경할 비밀번호를 입력해주세요',
-                    helperText: '변경할 경우에만 입력하세요',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: () => _passwordController.clear(),
-                    ),
-                  ),
+                  hint: '새 비밀번호 (변경하지 않으려면 비워두세요)',
                   obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return null; // Password is optional when editing
-                    }
-                    return Validators.validatePassword(value);
-                  },
-                  textInputAction: TextInputAction.done,
                   onChanged: (value) {
                     setState(() {
                       _isPasswordChanged = value.isNotEmpty;
@@ -287,73 +272,11 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Team image section
-                const Text(
-                  '구단 대표 이미지',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey),
-                      image: _imageFile != null
-                          ? DecorationImage(
-                              image: FileImage(_imageFile!),
-                              fit: BoxFit.cover,
-                            )
-                          : widget.team.imageUrl != null
-                              ? DecorationImage(
-                                  image: CachedNetworkImageProvider(
-                                    ApiService.baseUrl + widget.team.imageUrl!,
-                                  ),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                    ),
-                    child: (_imageFile == null && widget.team.imageUrl == null)
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(
-                                Icons.add_photo_alternate,
-                                size: 40,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '구단의 추억사진을 업로드해주세요',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          )
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                
                 // Update button
-                ElevatedButton(
+                AppButton(
+                  text: '구단 정보 수정하기',
                   onPressed: _isLoading ? null : _updateTeam,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text('정보 수정하기'),
+                  isLoading: _isLoading,
                 ),
               ],
             ),
@@ -367,7 +290,7 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
     final isSelected = _selectedType == type;
     
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: () {
           setState(() {
             _selectedType = type;
@@ -376,15 +299,17 @@ class _EditTeamScreenState extends State<EditTeamScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.black : Colors.grey[200],
+            color: isSelected ? AppColors.primary : AppColors.white,
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.neutral.withOpacity(0.2),
+            ),
           ),
           child: Center(
             child: Text(
               type,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-                fontWeight: FontWeight.bold,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: isSelected ? AppColors.white : AppColors.neutral,
               ),
             ),
           ),

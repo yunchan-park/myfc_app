@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:myfc_app/config/routes.dart';
+import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/models/match.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:myfc_app/widgets/common/app_button.dart';
+import 'package:myfc_app/widgets/common/app_card.dart';
 import 'package:myfc_app/widgets/widgets.dart';
 
 class MatchSummaryScreen extends StatefulWidget {
@@ -110,36 +113,37 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       ..sort((a, b) => b.compareTo(a));
     
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.background,
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
             )
           : _matches.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.sports_soccer,
                         size: 80,
-                        color: Colors.grey,
+                        color: AppColors.neutral,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         '아직 등록된 경기가 없어요!',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey,
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          color: AppColors.neutral,
                         ),
                       ),
                       const SizedBox(height: 24),
-                      ElevatedButton(
+                      AppButton(
+                        text: '매치 추가하기',
                         onPressed: () => Navigator.pushNamed(
                           context,
                           AppRoutes.addMatchStep1,
                         ).then((_) => _loadMatches()),
-                        child: const Text('매치 추가하기'),
                       ),
                     ],
                   ),
@@ -150,6 +154,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                       Expanded(
                         child: RefreshIndicator(
                           onRefresh: _loadMatches,
+                          color: AppColors.primary,
                           child: ListView.builder(
                             padding: const EdgeInsets.all(16),
                             itemCount: sortedKeys.length,
@@ -164,10 +169,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                                     padding: const EdgeInsets.symmetric(vertical: 16),
                                     child: Text(
                                       Helpers.getMonthHeader(monthMatches[0].date),
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: AppTextStyles.displaySmall,
                                     ),
                                   ),
                                   ...monthMatches.map((match) => _buildMatchItem(match)).toList(),
@@ -177,20 +179,14 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                           ),
                         ),
                       ),
-                      Container(
-                        width: double.infinity,
+                      Padding(
                         padding: const EdgeInsets.all(16),
-                        child: ElevatedButton(
+                        child: AppButton(
+                          text: '매치 추가하기',
                           onPressed: () => Navigator.pushNamed(
                             context,
                             AppRoutes.addMatchStep1,
                           ).then((_) => _loadMatches()),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(double.infinity, 50),
-                          ),
-                          child: const Text('매치 추가하기'),
                         ),
                       ),
                     ],
@@ -201,21 +197,83 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   
   Widget _buildMatchItem(Match match) {
     final result = match.getResultEnum();
+    String onlyDate = match.date.contains('T') ? match.date.split('T').first : match.date;
     
-    return MatchCard(
-      id: match.id,
-      date: match.date,
-      opponent: match.opponent,
-      score: match.score,
-      result: result,
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          '/match_detail',
-          arguments: match.id,
-        );
-      },
-      onDelete: () => _deleteMatch(match),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/match_detail',
+            arguments: match.id,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    onlyDate,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.neutral,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getResultColor(result).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      match.getResult(),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: _getResultColor(result),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      match.opponent,
+                      style: AppTextStyles.bodyLarge,
+                    ),
+                  ),
+                  Text(
+                    match.score,
+                    style: AppTextStyles.displaySmall.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  Color _getResultColor(MatchResult result) {
+    switch (result) {
+      case MatchResult.win:
+        return AppColors.success;
+      case MatchResult.draw:
+        return AppColors.warning;
+      case MatchResult.lose:
+        return AppColors.error;
+    }
   }
 } 

@@ -1,18 +1,5 @@
 import 'package:flutter/material.dart';
-
-class Goal {
-  final String scorer;
-  final String? assistant;
-  final int quarter;
-  final String? id;
-  
-  const Goal({
-    required this.scorer,
-    this.assistant,
-    required this.quarter,
-    this.id,
-  });
-}
+import 'package:myfc_app/models/match.dart';
 
 class GoalListWidget extends StatelessWidget {
   final List<Goal> goals;
@@ -102,14 +89,14 @@ class GoalListWidget extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: goal.scorer,
+                    text: goal.player?.name ?? '',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (goal.assistant != null)
+                  if (goal.assistPlayer?.name != null)
                     TextSpan(
-                      text: ' (${goal.assistant})',
+                      text: ' (${goal.assistPlayer!.name})',
                       style: TextStyle(
                         color: Colors.grey[700],
                       ),
@@ -145,7 +132,7 @@ class GoalListWidget extends StatelessWidget {
               ),
               constraints: const BoxConstraints(),
               padding: const EdgeInsets.only(left: 8),
-              onPressed: () => onDeleteGoal!(goal.id),
+              onPressed: () => onDeleteGoal!(goal.id.toString()),
             ),
         ],
       ),

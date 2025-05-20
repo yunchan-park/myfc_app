@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myfc_app/config/routes.dart';
+import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/models/team.dart';
 import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/models/match.dart';
@@ -11,6 +12,8 @@ import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:myfc_app/widgets/common/app_button.dart';
+import 'package:myfc_app/widgets/common/app_card.dart';
 import 'package:intl/intl.dart';
 
 class TeamProfileScreen extends StatefulWidget {
@@ -47,6 +50,8 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
   
   Team? get team => _team;
   List<Player> get players => _players;
+  
+  bool _showPlayerList = false;
   
   @override
   void initState() {
@@ -144,8 +149,10 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        ),
       );
     }
     
@@ -154,11 +161,14 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('구단 정보를 불러올 수 없습니다.'),
+            Text(
+              '구단 정보를 불러올 수 없습니다.',
+              style: AppTextStyles.bodyLarge,
+            ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            AppButton(
+              text: '다시 시도',
               onPressed: _loadData,
-              child: const Text('다시 시도'),
             ),
           ],
         ),
@@ -166,7 +176,7 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
     }
     
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -176,7 +186,11 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Container(
                     height: 400,
-                    child: const Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
                   );
                 }
                 if (snapshot.hasData && snapshot.data!.isNotEmpty) {
@@ -187,17 +201,20 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
                 }
                 return Container(
                   height: 400,
-                  child: const Center(
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.sports_soccer, size: 48, color: Color(0xFF9CA3AF)),
-                        SizedBox(height: 16),
+                        Icon(
+                          Icons.sports_soccer,
+                          size: 48,
+                          color: AppColors.neutral,
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           '등록된 매치가 없습니다',
-                          style: TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 16,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: AppColors.neutral,
                           ),
                         ),
                       ],
@@ -209,252 +226,236 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
             const SizedBox(height: 16),
             _buildPlayerAwardsSection(),
             const SizedBox(height: 16),
-            _buildPlayerStatsCard(context),
+            _buildPlayerStatsAccordion(context),
             const SizedBox(height: 16),
-            _buildMatchStatsCard(context),
-            const SizedBox(height: 16),
+            FutureBuilder<List<Match>>(
+              future: _getRecentMatches(9),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Container(
+                    height: 180,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      ),
+                    ),
+                  );
+                }
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  return RecentMatchSummaryCard(recentMatches: snapshot.data!);
+                }
+                return Container(
+                  height: 180,
+                  child: Center(
+                    child: Text('최근 매치 데이터가 없습니다'),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
   
-  Widget _buildPlayerStatsCard(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.pushNamed(context, '/player-management');
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Text(
-                '${_players.length}명',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '총 선수',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey),
-              ),
-              const Spacer(),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF9CA3AF)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildMatchStatsCard(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+  Widget _buildPlayerStatsAccordion(BuildContext context) {
+    return Column(
+      children: [
+        AppCard(
+          onTap: () {
+            setState(() {
+              _showPlayerList = !_showPlayerList;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
                 Text(
-                  '$_totalMatches매치',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  '${_players.length}명',
+                  style: AppTextStyles.displaySmall,
                 ),
-                const SizedBox(width: 16),
-                _buildResultChip('승', _wins, const Color(0xFF3B82F6)),
                 const SizedBox(width: 8),
-                _buildResultChip('무', _draws, const Color(0xFF9CA3AF)),
-                const SizedBox(width: 8),
-                _buildResultChip('패', _losses, const Color(0xFFEF4444)),
+                Text(
+                  '총 선수',
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.neutral,
+                  ),
+                ),
+                const Spacer(),
+                AnimatedRotation(
+                  turns: _showPlayerList ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.neutral,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildProgressBar(),
-            const SizedBox(height: 16),
-            Row(
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: _buildPlayerList(),
+          crossFadeState: _showPlayerList ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlayerList() {
+    if (_players.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: Text(
+            '등록된 선수가 없습니다',
+            style: AppTextStyles.bodyLarge.copyWith(
+              color: AppColors.neutral,
+            ),
+          ),
+        ),
+      );
+    }
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      itemCount: _players.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 4),
+      itemBuilder: (context, index) {
+        final player = _players[index];
+        return AppCard(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
               children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  child: Text(
+                    player.number.toString(),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontSize: 14,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildStatText('승', _wins, _totalMatches, const Color(0xFF3B82F6)),
-                      const SizedBox(height: 8),
-                      _buildStatText('무', _draws, _totalMatches, const Color(0xFF9CA3AF)),
-                      const SizedBox(height: 8),
-                      _buildStatText('패', _losses, _totalMatches, const Color(0xFFEF4444)),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildScoreText('합계', '$_totalGoalsScored 득점', '$_totalGoalsConceded 실점'),
-                      const SizedBox(height: 8),
-                      _buildScoreText(
-                        '평균',
-                        '${(_totalGoalsScored / (_totalMatches == 0 ? 1 : _totalMatches)).toStringAsFixed(1)} 득점',
-                        '${(_totalGoalsConceded / (_totalMatches == 0 ? 1 : _totalMatches)).toStringAsFixed(1)} 실점',
+                      Text(
+                        player.name,
+                        style: AppTextStyles.bodyMedium.copyWith(fontSize: 15),
+                      ),
+                      Text(
+                        player.position,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.neutral,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildPlayerAwardsSection() {
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '선수 어워드',
+              style: AppTextStyles.displaySmall,
+            ),
+            const SizedBox(height: 16),
+            if (_topScorer != null)
+              _buildAwardItem(
+                '득점왕',
+                _topScorer!.name,
+                _topScorer!.goalCount.toString(),
+                Icons.sports_soccer,
+              ),
+            if (_topAssister != null)
+              _buildAwardItem(
+                '도움왕',
+                _topAssister!.name,
+                _topAssister!.assistCount.toString(),
+                Icons.assistant,
+              ),
+            if (_mvp != null)
+              _buildAwardItem(
+                'MVP',
+                _mvp!.name,
+                _mvp!.momCount.toString(),
+                Icons.emoji_events,
+              ),
+            if (_topScorer == null && _topAssister == null && _mvp == null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    '아직 어워드가 없습니다',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: AppColors.neutral,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
-  
-  Widget _buildResultChip(String label, int count, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        '$label $count',
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildProgressBar() {
-    final winRatio = _totalMatches > 0 ? _wins / _totalMatches : 0.0;
-    final drawRatio = _totalMatches > 0 ? _draws / _totalMatches : 0.0;
-    final lossRatio = _totalMatches > 0 ? _losses / _totalMatches : 0.0;
-    
-    return Row(
-      children: [
-        Expanded(
-          flex: (winRatio * 100).round(),
-          child: Container(
-            height: 8,
-            color: const Color(0xFF3B82F6),
-          ),
-        ),
-        Expanded(
-          flex: (drawRatio * 100).round(),
-          child: Container(
-            height: 8,
-            color: const Color(0xFF9CA3AF),
-          ),
-        ),
-        Expanded(
-          flex: (lossRatio * 100).round(),
-          child: Container(
-            height: 8,
-            color: const Color(0xFFEF4444),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildStatText(String label, int count, int total, Color color) {
-    final percentage = total > 0 ? (count / total * 100).round() : 0;
-    return Text(
-      '$label $count $percentage%',
-      style: TextStyle(
-        color: color,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-  
-  Widget _buildScoreText(String label, String scored, String conceded) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          scored,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          conceded,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildPlayerAwardsSection() {
+  Widget _buildAwardItem(String title, String playerName, String count, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildAwardCard('득점왕', _topScorer),
-          _buildAwardCard('도움왕', _topAssister),
-          _buildAwardCard('MOM', _mvp),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAwardCard(String title, Player? player) {
-    return Expanded(
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 0,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-          child: Column(
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: const Color(0xFFE5E7EB),
-                    child: const Icon(Icons.person, size: 40, color: Color(0xFF9CA3AF)),
-                  ),
-                  Positioned(
-                    top: 0,
-                    child: Icon(Icons.emoji_events, color: Color(0xFFFFC107), size: 32),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                player != null ? player.name : '선정된\n선수가 없어요',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: player != null ? Colors.black : Colors.grey,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-            ],
+          Icon(
+            icon,
+            color: AppColors.primary,
+            size: 24,
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.neutral,
+                  ),
+                ),
+                Text(
+                  playerName,
+                  style: AppTextStyles.bodyLarge,
+                ),
+              ],
+            ),
+          ),
+          Text(
+            count,
+            style: AppTextStyles.displaySmall.copyWith(
+              color: AppColors.primary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -540,9 +541,12 @@ class MatchCardBanner extends StatelessWidget {
   const MatchCardBanner({Key? key, required this.match, required this.teamName, this.onTap}) : super(key: key);
 
   String _formatDate(String date) {
+    if (date.contains('T')) {
+      return date.split('T').first;
+    }
     try {
       final dt = DateTime.parse(date);
-      return DateFormat('yyyy.MM.dd').format(dt);
+      return DateFormat('yyyy-MM-dd').format(dt);
     } catch (_) {
       return date;
     }
@@ -688,6 +692,126 @@ class MatchCardBanner extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class RecentMatchSummaryCard extends StatelessWidget {
+  final List<Match> recentMatches;
+
+  const RecentMatchSummaryCard({required this.recentMatches, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = recentMatches.length;
+    final wins = recentMatches.where((m) => m.getResult() == '승').length;
+    final draws = recentMatches.where((m) => m.getResult() == '무').length;
+    final losses = recentMatches.where((m) => m.getResult() == '패').length;
+    final totalGoals = recentMatches.fold(0, (sum, m) => sum + m.ourScore);
+    final totalConceded = recentMatches.fold(0, (sum, m) => sum + m.opponentScore);
+
+    final winRate = total == 0 ? 0 : (wins / total * 100).round();
+    final drawRate = total == 0 ? 0 : (draws / total * 100).round();
+    final lossRate = total == 0 ? 0 : (losses / total * 100).round();
+
+    final avgGoals = total == 0 ? 0 : (totalGoals / total);
+    final avgConceded = total == 0 ? 0 : (totalConceded / total);
+
+    final recentResults = recentMatches.map((m) => m.getResult()).toList();
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('$total매치', style: AppTextStyles.displaySmall),
+                const SizedBox(width: 8),
+                ...recentResults.map((result) => _buildResultChip(result)).toList(),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildResultBar(winRate, drawRate, lossRate),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('$wins승 $winRate%', style: TextStyle(color: AppColors.success)),
+                const SizedBox(width: 8),
+                Text('$draws무 $drawRate%', style: TextStyle(color: AppColors.warning)),
+                const SizedBox(width: 8),
+                Text('$losses패 $lossRate%', style: TextStyle(color: AppColors.error)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('합계 ', style: AppTextStyles.bodyMedium),
+                Text('$totalGoals 득점', style: TextStyle(color: AppColors.primary)),
+                Text('  $totalConceded 실점', style: TextStyle(color: AppColors.error)),
+              ],
+            ),
+            Row(
+              children: [
+                Text('평균 ', style: AppTextStyles.bodyMedium),
+                Text('${avgGoals.toStringAsFixed(1)} 득점', style: TextStyle(color: AppColors.primary)),
+                Text('  ${avgConceded.toStringAsFixed(1)} 실점', style: TextStyle(color: AppColors.error)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultChip(String result) {
+    Color color;
+    String text;
+    switch (result) {
+      case '승':
+        color = AppColors.success;
+        text = '승';
+        break;
+      case '무':
+        color = AppColors.warning;
+        text = '무';
+        break;
+      case '패':
+        color = AppColors.error;
+        text = '패';
+        break;
+      default:
+        color = AppColors.neutral;
+        text = '?';
+    }
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildResultBar(int winRate, int drawRate, int lossRate) {
+    return Row(
+      children: [
+        Expanded(
+          flex: winRate,
+          child: Container(height: 6, color: AppColors.success),
+        ),
+        Expanded(
+          flex: drawRate,
+          child: Container(height: 6, color: AppColors.warning),
+        ),
+        Expanded(
+          flex: lossRate,
+          child: Container(height: 6, color: AppColors.error),
+        ),
+      ],
     );
   }
 } 

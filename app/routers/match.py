@@ -68,13 +68,23 @@ def create_match(
     if goals:
         for goal in goals:
             pid = goal.player_id if hasattr(goal, 'player_id') else goal['player_id']
-            goal_scorers[pid] = goal_scorers.get(pid, 0) + 1
-            # 어시스트
             apid = None
             if hasattr(goal, 'assist_player_id'):
                 apid = goal.assist_player_id
             elif 'assist_player_id' in goal:
                 apid = goal['assist_player_id']
+            scorer = db.query(models.Player).filter(models.Player.id == pid).first()
+            assist_player = db.query(models.Player).filter(models.Player.id == apid).first() if apid else None
+            db_goal = models.Goal(
+                match_id=db_match.id,
+                player_id=pid,
+                assist_player_id=apid,
+                quarter=goal.quarter if hasattr(goal, 'quarter') else goal['quarter'],
+                scorer_name=scorer.name if scorer else None,
+                assist_name=assist_player.name if assist_player else None
+            )
+            db.add(db_goal)
+            goal_scorers[pid] = goal_scorers.get(pid, 0) + 1
             if apid:
                 assist_providers[apid] = assist_providers.get(apid, 0) + 1
 
@@ -268,6 +278,9 @@ def get_match_detail(
         joinedload(models.Goal.player),
         joinedload(models.Goal.assist_player)
     ).filter(models.Goal.match_id == match_id).all()
+
+    # player_id가 None인 골은 제외
+    goals = [g for g in goals if g.player_id is not None]
     
     # 쿼터별 스코어 조회
     db_quarter_scores = db.query(models.QuarterScore).filter(
@@ -426,7 +439,11 @@ def add_goal(
                 detail=f"Assist player with ID {goal.assist_player_id} belongs to team ID {assist_player.team_id}, not to your team (ID: {current_team.id})"
             )
     
-    db_goal = models.Goal(**goal.dict())
+    db_goal = models.Goal(
+        **goal.dict(),
+        scorer_name=scorer.name if scorer else None,
+        assist_name=assist_player.name if assist_player else None
+    )
     db.add(db_goal)
     
     # 골 스코어러의 골 수 증가

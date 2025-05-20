@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:myfc_app/config/routes.dart';
+import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
-import 'package:myfc_app/widgets/widgets.dart';
+import 'package:myfc_app/widgets/common/app_button.dart';
+import 'package:myfc_app/widgets/common/app_card.dart';
 
 class AddMatchStep2Screen extends StatefulWidget {
   final DateTime date;
@@ -107,172 +109,225 @@ class _AddMatchStep2ScreenState extends State<AddMatchStep2Screen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('매치 추가'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.grey[300],
-            height: 1,
-          ),
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          '매치 추가',
+          style: AppTextStyles.displaySmall,
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _players.isEmpty
-              ? _buildEmptyState()
-              : Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Step indicator
-                            _buildStepIndicator(),
-                            const SizedBox(height: 32),
-                            
-                            // Selection info
-                            Text(
-                              '경기에 참여하는 팀원을 모두 선택해주세요',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            
-                            // Selected count
-                            Text(
-                              '${_selectedPlayerIds.length}명 선택됨',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Player grid
-                            _buildPlayerGrid(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    
-                    // Next button
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ElevatedButton(
-                        onPressed: _goToNextStep,
-                        child: const Text('다음 단계로'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+          ? Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
+            )
+          : _buildContent(),
     );
   }
   
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.people,
-            size: 80,
-            color: Colors.grey,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '아직 선수들이 등록되지 않았어요!',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey,
+  Widget _buildContent() {
+    return Column(
+      children: [
+        _buildStepIndicator(),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildPlayerSelection(),
+                  const SizedBox(height: 24),
+                  AppButton(
+                    onPressed: _selectedPlayerIds.isEmpty ? null : _goToNextStep,
+                    text: '다음',
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('돌아가기'),
-          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildStepIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      color: AppColors.white,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildStep(1, '기본 정보', true),
+          _buildStep(2, '선수 선택', false),
+          _buildStep(3, '점수 입력', true),
+          _buildStep(4, '확인', true),
         ],
       ),
     );
   }
   
-  Widget _buildStepIndicator() {
+  Widget _buildStep(int step, String label, bool isCompleted) {
+    final isCurrentStep = step == 2;
+    final color = isCurrentStep ? AppColors.primary : AppColors.neutral;
+
     return Row(
       children: [
-        _buildStepCircle(1, false),
-        _buildStepLine(),
-        _buildStepCircle(2, true),
-        _buildStepLine(),
-        _buildStepCircle(3, false),
-        _buildStepLine(),
-        _buildStepCircle(4, false),
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: isCurrentStep ? AppColors.primary : AppColors.white,
+            border: Border.all(
+              color: color,
+              width: 2,
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: isCompleted
+              ? Icon(
+                  Icons.check,
+                  size: 16,
+                  color: isCurrentStep ? AppColors.white : color,
+                )
+              : Text(
+                  step.toString(),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: isCurrentStep ? AppColors.white : color,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: color,
+          ),
+        ),
+        if (step < 4) ...[
+          const SizedBox(width: 8),
+          Container(
+            width: 24,
+            height: 2,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+        ],
       ],
     );
   }
   
-  Widget _buildStepCircle(int step, bool isActive) {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive ? Colors.black : Colors.grey[300],
-      ),
-      child: Center(
-        child: Text(
-          '$step',
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.grey[700],
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
+  Widget _buildPlayerSelection() {
+    if (_players.isEmpty) {
+      return AppCard(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  size: 48,
+                  color: AppColors.neutral.withOpacity(0.6),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '등록된 선수가 없습니다',
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.neutral,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '선수 관리 화면에서 선수를 추가해주세요',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.neutral.withOpacity(0.6),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-  
-  Widget _buildStepLine() {
-    return Expanded(
-      child: Container(
-        height: 2,
-        color: Colors.grey[300],
-      ),
-    );
-  }
-  
-  Widget _buildPlayerGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.9,
-      ),
-      itemCount: _players.length,
-      itemBuilder: (context, index) {
-        final player = _players[index];
-        final isSelected = _selectedPlayerIds.contains(player.id);
-        
-        return PlayerCard(
-          name: player.name,
-          number: player.number,
-          isSelected: isSelected,
-          onTap: () => _togglePlayerSelection(player),
-        );
-      },
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '선수 선택',
+          style: AppTextStyles.displayLarge.copyWith(
+            color: AppColors.neutral,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '매치에 참여할 선수를 선택해주세요',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.neutral.withOpacity(0.6),
+          ),
+        ),
+        const SizedBox(height: 24),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 1.5,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: _players.length,
+          itemBuilder: (context, index) {
+            final player = _players[index];
+            final isSelected = _selectedPlayerIds.contains(player.id);
+
+            return GestureDetector(
+              onTap: () => _togglePlayerSelection(player),
+              child: AppCard(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: isSelected
+                            ? AppColors.primary
+                            : AppColors.primary.withOpacity(0.1),
+                        child: Text(
+                          player.number.toString(),
+                          style: AppTextStyles.displayMedium.copyWith(
+                            color: isSelected ? AppColors.white : AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        player.name,
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          color: AppColors.neutral,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 } 

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:myfc_app/config/routes.dart';
+import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/utils/validators.dart';
 import 'package:myfc_app/utils/helpers.dart';
+import 'package:myfc_app/widgets/common/app_button.dart';
+import 'package:myfc_app/widgets/common/app_input.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -93,14 +96,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     if (_checkingAuth) {
-      return const Scaffold(
+      return Scaffold(
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
         ),
       );
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -113,64 +120,48 @@ class _SplashScreenState extends State<SplashScreen> {
                   const SizedBox(height: 60),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.sports_soccer,
                         size: 40,
+                        color: AppColors.primary,
                       ),
                       const SizedBox(width: 16),
                       Text(
                         'MY FC',
-                        style: Theme.of(context).textTheme.displayLarge,
+                        style: AppTextStyles.displayLarge,
                       ),
                     ],
                   ),
                   const SizedBox(height: 80),
-                  TextFormField(
+                  AppInput(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: '구단 이름을 입력해주세요',
-                    ),
+                    hint: '구단 이름을 입력해주세요',
                     validator: Validators.validateTeamName,
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
+                  AppInput(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
-                      hintText: '구단의 비밀번호를 입력해주세요',
-                    ),
+                    hint: '구단의 비밀번호를 입력해주세요',
                     obscureText: true,
                     validator: Validators.validatePassword,
                     textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _login(),
+                    onSubmitted: (_) => _login(),
                   ),
                   const SizedBox(height: 32),
-                  ElevatedButton(
+                  AppButton(
+                    text: '우리 구단 페이지로 가기',
                     onPressed: _isLoading ? null : _login,
-                    child: _isLoading 
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text('우리 구단 페이지로 가기'),
+                    isLoading: _isLoading,
                   ),
                   const SizedBox(height: 16),
                   Center(
-                    child: TextButton(
+                    child: AppButton(
+                      text: '우리 구단 입력하기',
+                      variant: AppButtonVariant.text,
                       onPressed: () => Navigator.pushNamed(
                         context,
                         AppRoutes.registerTeam,
-                      ),
-                      child: const Text(
-                        '우리 구단 입력하기',
-                        style: TextStyle(
-                          color: Colors.black,
-                          decoration: TextDecoration.underline,
-                        ),
                       ),
                     ),
                   ),
