@@ -56,7 +56,6 @@ class _SplashScreenState extends State<SplashScreen> {
       final accessToken = loginResponse['access_token'] as String;
       var teamIdStr = '';
       
-      // API가 직접 team_id를 반환하는지 확인
       if (loginResponse.containsKey('team_id')) {
         final teamId = loginResponse['team_id'];
         teamIdStr = teamId.toString();
@@ -112,7 +111,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 60),
-                  // Logo
                   Row(
                     children: [
                       const Icon(
@@ -127,7 +125,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     ],
                   ),
                   const SizedBox(height: 80),
-                  // Team name input
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
@@ -137,7 +134,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: 16),
-                  // Password input
                   TextFormField(
                     controller: _passwordController,
                     decoration: const InputDecoration(
@@ -149,7 +145,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     onFieldSubmitted: (_) => _login(),
                   ),
                   const SizedBox(height: 32),
-                  // Login button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _login,
                     child: _isLoading 
@@ -164,7 +159,6 @@ class _SplashScreenState extends State<SplashScreen> {
                       : const Text('우리 구단 페이지로 가기'),
                   ),
                   const SizedBox(height: 16),
-                  // Register link
                   Center(
                     child: TextButton(
                       onPressed: () => Navigator.pushNamed(

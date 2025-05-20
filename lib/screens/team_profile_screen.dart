@@ -33,7 +33,6 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
   bool _isImageLoading = false;
   bool _hasError = false;
   
-  // Match statistics
   int _totalMatches = 0;
   int _wins = 0;
   int _draws = 0;
@@ -41,7 +40,11 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
   int _totalGoalsScored = 0;
   int _totalGoalsConceded = 0;
   
-  // 외부에서 접근 가능한 메서드들
+  // Player awards
+  Player? _topScorer;
+  Player? _topAssister;
+  Player? _mvp;
+  
   Team? get team => _team;
   List<Player> get players => _players;
   
@@ -62,17 +65,26 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
       final token = await _authService.getToken();
       
       if (teamId != null && token != null) {
-        // Load team data
         final team = await _apiService.getTeam(teamId, token);
         
-        // Load match data
         final matches = await _apiService.getTeamMatches(teamId, token);
         
-        // Load player data
         final players = await _apiService.getTeamPlayers(teamId, token);
         
-        // Calculate statistics
         _calculateMatchStatistics(matches);
+        
+        // 선수 어워드 계산
+        _topScorer = null;
+        _topAssister = null;
+        _mvp = null;
+        if (players.isNotEmpty) {
+          final scorer = players.reduce((a, b) => a.goalCount >= b.goalCount ? a : b);
+          if (scorer.goalCount > 0) _topScorer = scorer;
+          final assister = players.reduce((a, b) => a.assistCount >= b.assistCount ? a : b);
+          if (assister.assistCount > 0) _topAssister = assister;
+          final mvp = players.reduce((a, b) => a.momCount >= b.momCount ? a : b);
+          if (mvp.momCount > 0) _mvp = mvp;
+        }
         
         if (mounted) {
           setState(() {
@@ -109,7 +121,6 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
     _totalGoalsConceded = matches.fold(0, (sum, m) => sum + m.opponentScore);
   }
   
-  // 최근 매치 상세 정보 가져오기
   Future<List<Match>> _getRecentMatches(int limit) async {
     try {
       final teamId = await _authService.getTeamId();
@@ -159,7 +170,6 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 상단 네이비 영역 대신 최근 매치 카드 슬라이더
             FutureBuilder<List<Match>>(
               future: _getRecentMatches(5),
               builder: (context, snapshot) {
@@ -196,6 +206,8 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
                 );
               },
             ),
+            const SizedBox(height: 16),
+            _buildPlayerAwardsSection(),
             const SizedBox(height: 16),
             _buildPlayerStatsCard(context),
             const SizedBox(height: 16),
@@ -383,9 +395,71 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
       ],
     );
   }
+
+  Widget _buildPlayerAwardsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildAwardCard('득점왕', _topScorer),
+          _buildAwardCard('도움왕', _topAssister),
+          _buildAwardCard('MOM', _mvp),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAwardCard(String title, Player? player) {
+    return Expanded(
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+          child: Column(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Stack(
+                alignment: Alignment.topCenter,
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: const Color(0xFFE5E7EB),
+                    child: const Icon(Icons.person, size: 40, color: Color(0xFF9CA3AF)),
+                  ),
+                  Positioned(
+                    top: 0,
+                    child: Icon(Icons.emoji_events, color: Color(0xFFFFC107), size: 32),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                player != null ? player.name : '선정된\n선수가 없어요',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: player != null ? Colors.black : Colors.grey,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-// 매치 카드 슬라이더 위젯
 class MatchCardsSlider extends StatefulWidget {
   final List<Match> matches;
   final String teamName;
@@ -459,7 +533,6 @@ class _MatchCardsSliderState extends State<MatchCardsSlider> {
   }
 }
 
-// 개별 매치 카드 배너 위젯
 class MatchCardBanner extends StatelessWidget {
   final Match match;
   final String teamName;
@@ -497,14 +570,12 @@ class MatchCardBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
-              // 배경 이미지
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/soccer_field_background.png',
                   fit: BoxFit.cover,
                 ),
               ),
-              // 그라데이션 오버레이
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -519,14 +590,12 @@ class MatchCardBanner extends StatelessWidget {
                   ),
                 ),
               ),
-              // 내용
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // 상단 - 날짜
                       Align(
                         alignment: Alignment.topCenter,
                         child: Text(
@@ -538,7 +607,6 @@ class MatchCardBanner extends StatelessWidget {
                           ),
                         ),
                       ),
-                      // 중앙 - 팀명과 스코어
                       Column(
                         children: [
                           Text(
@@ -561,12 +629,10 @@ class MatchCardBanner extends StatelessWidget {
                           ),
                         ],
                       ),
-                      // 하단 - 득점자/어시스트
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 득점자
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,7 +655,6 @@ class MatchCardBanner extends StatelessWidget {
                               ],
                             ),
                           ),
-                          // 어시스트
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,

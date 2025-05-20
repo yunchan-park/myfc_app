@@ -106,6 +106,7 @@ class MatchBase(BaseModel):
 class MatchCreate(MatchBase):
     player_ids: List[int]
     quarter_scores: List[QuarterScoreBase]
+    goals: List[GoalCreate] = []
 
 class MatchUpdate(BaseModel):
     date: Optional[datetime] = None

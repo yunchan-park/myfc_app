@@ -9,11 +9,9 @@ import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
 
-// PlayerManagementScreen에 접근하기 위한 GlobalKey
 final GlobalKey<PlayerManagementScreenState> playerManagementScreenKey =
     GlobalKey<PlayerManagementScreenState>();
 
-// TeamProfileScreen에 접근하기 위한 GlobalKey
 final GlobalKey<TeamProfileScreenState> teamProfileScreenKey =
     GlobalKey<TeamProfileScreenState>();
 
@@ -65,7 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   
   void _showAddPlayerModal() {
-    // GlobalKey를 통해 PlayerManagementScreen의 메서드에 접근
     if (playerManagementScreenKey.currentState != null) {
       print('HomeScreen: 선수 추가 모달 호출');
       playerManagementScreenKey.currentState!.showAddPlayerModal();
@@ -80,10 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = true;
       });
 
-      // 캐시된 팀 정보를 가져오기
       Team? team = await _storageService.getCachedTeam();
       
-      // 캐시된 정보가 없으면 API로 가져오기
       if (team == null) {
         final teamId = await _authService.getTeamId();
         final token = await _authService.getToken();
@@ -253,4 +248,4 @@ class _HomeScreenState extends State<HomeScreen> {
         );
     }
   }
-} 
+}

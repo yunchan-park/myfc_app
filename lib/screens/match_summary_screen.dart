@@ -35,7 +35,6 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
     });
     
     try {
-      // Try to get data from cache first
       final cachedMatches = await _storageService.getCachedMatches();
       
       if (cachedMatches.isNotEmpty) {
@@ -45,14 +44,12 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
         });
       }
       
-      // Load from API
       final teamId = await _authService.getTeamId();
       final token = await _authService.getToken();
       
       if (teamId != null) {
         final matches = await _apiService.getTeamMatches(teamId, token);
         
-        // Update cache
         await _storageService.cacheMatches(matches);
         
         setState(() {
@@ -87,7 +84,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
       try {
         final token = await _authService.getToken();
         final result = await _apiService.deleteMatch(match.id, token);
-        await _loadMatches(); // Reload matches
+        await _loadMatches();
         if (mounted) {
           Helpers.showSnackBar(context, result['message'] ?? '경기가 삭제되었습니다.');
         }
@@ -105,7 +102,6 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   
   @override
   Widget build(BuildContext context) {
-    // 월별로 그룹화 및 정렬
     final groupedMatches = Helpers.groupByMonth<Match>(
       _matches,
       (match) => DateFormat('yyyy-MM-dd').parse(match.date),
@@ -160,12 +156,10 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                             itemBuilder: (context, index) {
                               final monthKey = sortedKeys[index];
                               final monthMatches = groupedMatches[monthKey]!;
-                              // Sort matches by date (newest first)
                               monthMatches.sort((a, b) => b.date.compareTo(a.date));
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Month header
                                   Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 16),
                                     child: Text(
@@ -176,7 +170,6 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                                       ),
                                     ),
                                   ),
-                                  // Match list for this month
                                   ...monthMatches.map((match) => _buildMatchItem(match)).toList(),
                                 ],
                               );
@@ -184,7 +177,6 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                           ),
                         ),
                       ),
-                      // Add match button
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),

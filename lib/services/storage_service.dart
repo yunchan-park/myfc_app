@@ -13,7 +13,6 @@ class StorageService {
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
-  // Save team to cache
   Future<void> cacheTeam(Team team) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -26,7 +25,6 @@ class StorageService {
     }
   }
 
-  // Get cached team
   Future<Team?> getCachedTeam() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -46,18 +44,14 @@ class StorageService {
     }
   }
 
-  // Save players to cache
   Future<void> cachePlayers(List<Player> players) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // Player 객체 목록을 JSON 형태로 변환
       final List<Map<String, dynamic>> playersJson = players.map((player) => player.toJson()).toList();
       
-      // JSON 문자열로 직렬화
       final String playersJsonString = jsonEncode(playersJson);
       
-      // SharedPreferences에 저장
       await prefs.setString('cached_players', playersJsonString);
       
       print('선수 데이터 캐싱 성공: ${players.length}명');
@@ -66,12 +60,10 @@ class StorageService {
     }
   }
 
-  // Get cached players
   Future<List<Player>> getCachedPlayers() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // 캐시된 JSON 문자열 가져오기
       final String? playersJsonString = prefs.getString('cached_players');
       
       if (playersJsonString == null || playersJsonString.isEmpty) {
@@ -79,10 +71,8 @@ class StorageService {
         return [];
       }
       
-      // JSON 파싱
       final List<dynamic> playersJson = jsonDecode(playersJsonString);
       
-      // Player 객체 목록으로 변환
       final List<Player> players = playersJson.map((json) => Player.fromJson(json)).toList();
       
       print('캐시된 선수 데이터 로드 성공: ${players.length}명');
@@ -94,7 +84,6 @@ class StorageService {
     }
   }
 
-  // Save matches to cache
   Future<void> cacheMatches(List<Match> matches) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -107,7 +96,6 @@ class StorageService {
     }
   }
 
-  // Get cached matches
   Future<List<Match>> getCachedMatches() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -127,7 +115,6 @@ class StorageService {
     }
   }
 
-  // Clear all cache
   Future<void> clearCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -141,32 +128,26 @@ class StorageService {
     }
   }
 
-  // 토큰 저장
   Future<void> saveToken(String token) async {
     await _secureStorage.write(key: 'auth_token', value: token);
   }
   
-  // 토큰 가져오기
   Future<String?> getToken() async {
     return await _secureStorage.read(key: 'auth_token');
   }
   
-  // 토큰 삭제 (로그아웃 시)
   Future<void> deleteToken() async {
     await _secureStorage.delete(key: 'auth_token');
   }
   
-  // 팀 ID 저장
   Future<void> saveTeamId(String teamId) async {
     await _secureStorage.write(key: 'team_id', value: teamId);
   }
   
-  // 팀 ID 가져오기
   Future<String?> getTeamId() async {
     return await _secureStorage.read(key: 'team_id');
   }
 
-  // 캐시된 선수 데이터 삭제
   Future<void> clearCachedPlayers() async {
     try {
       final prefs = await SharedPreferences.getInstance();

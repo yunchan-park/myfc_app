@@ -33,10 +33,8 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
   List<Player> _players = [];
   bool _isLoading = true;
   
-  // Quarter scores (quarter number -> {our_score, opponent_score})
   Map<int, Map<String, int>> _quarterScores = {};
   
-  // Goal records
   List<Map<String, dynamic>> _goals = [];
   
   @override
@@ -44,7 +42,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
     super.initState();
     _tabController = TabController(length: widget.quarters, vsync: this);
     
-    // Initialize quarter scores
     for (int i = 1; i <= widget.quarters; i++) {
       _quarterScores[i] = {
         'our_score': 0,
@@ -73,7 +70,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
       if (teamId != null) {
         final allPlayers = await _apiService.getTeamPlayers(teamId, token);
         
-        // Filter players by selected playerIds
         final selectedPlayers = allPlayers.where(
           (player) => widget.playerIds.contains(player.id)
         ).toList();
@@ -210,10 +206,8 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
   
   void _registerGoal(int quarter, int playerId, int? assistPlayerId) {
     setState(() {
-      // Update quarter score
       _quarterScores[quarter]!['our_score'] = _quarterScores[quarter]!['our_score']! + 1;
       
-      // Add goal record
       _goals.add({
         'quarter': quarter,
         'player_id': playerId,
@@ -223,7 +217,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
   }
   
   void _goToNextStep() {
-    // Calculate total score
     int ourTotalScore = 0;
     int opponentTotalScore = 0;
     
@@ -270,7 +263,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
                   child: _buildStepIndicator(),
                 ),
                 
-                // Tab bar
                 TabBar(
                   controller: _tabController,
                   tabs: List.generate(widget.quarters, (index) {
@@ -281,7 +273,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
                   unselectedLabelColor: Colors.grey,
                 ),
                 
-                // Tab views
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
@@ -291,7 +282,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
                   ),
                 ),
                 
-                // Next button
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: ElevatedButton(
@@ -356,7 +346,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
   Widget _buildQuarterScoreTab(int quarter) {
     final quarterScore = _quarterScores[quarter]!;
     
-    // Create goals list
     final quarterGoals = _goals
         .where((goal) => goal['quarter'] == quarter)
         .map((goal) {
@@ -390,7 +379,7 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
             scorer: '${player.name} (${player.number}번)',
             assistant: assistPlayerName,
             quarter: quarter,
-            id: goal.hashCode.toString(), // Use hash as unique identifier
+            id: goal.hashCode.toString(),
           );
         })
         .toList();
@@ -400,7 +389,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Score display
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -439,7 +427,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
           
           const SizedBox(height: 32),
           
-          // Action buttons
           Row(
             children: [
               Expanded(
@@ -470,7 +457,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
           
           const SizedBox(height: 24),
           
-          // Goals list for this quarter
           if (_goals.isNotEmpty)
             Expanded(
               child: Column(
@@ -491,7 +477,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
                       isEditable: true,
                       onDeleteGoal: (goalId) {
                         if (goalId != null) {
-                          // Find corresponding goal in _goals
                           final goalIndex = _goals.indexWhere((g) => g.hashCode.toString() == goalId);
                           if (goalIndex >= 0) {
                             setState(() {

@@ -60,6 +60,45 @@ def create_match(
         )
         db.add(db_quarter_score)
     
+    # ------------------ MOM 자동 선정 로직 추가 ------------------
+    # 골 정보 집계 (goals가 match.goals로 전달된다고 가정)
+    goal_scorers = {}  # player_id -> goal_count
+    assist_providers = {}  # player_id -> assist_count
+    goals = getattr(match, 'goals', None)
+    if goals:
+        for goal in goals:
+            pid = goal.player_id if hasattr(goal, 'player_id') else goal['player_id']
+            goal_scorers[pid] = goal_scorers.get(pid, 0) + 1
+            # 어시스트
+            apid = None
+            if hasattr(goal, 'assist_player_id'):
+                apid = goal.assist_player_id
+            elif 'assist_player_id' in goal:
+                apid = goal['assist_player_id']
+            if apid:
+                assist_providers[apid] = assist_providers.get(apid, 0) + 1
+
+        # 점수 계산
+        player_scores = {}
+        for pid, gcount in goal_scorers.items():
+            player_scores[pid] = gcount * 2
+        for pid, acount in assist_providers.items():
+            player_scores[pid] = player_scores.get(pid, 0) + acount
+
+        # 최고 점수 플레이어 선정
+        mom_player_id = None
+        max_score = -1
+        for pid, score in player_scores.items():
+            if score > max_score:
+                max_score = score
+                mom_player_id = pid
+
+        # MOM 선수 mom_count 증가
+        if mom_player_id:
+            mom_player = db.query(models.Player).filter(models.Player.id == mom_player_id).first()
+            if mom_player:
+                mom_player.mom_count += 1
+
     db.commit()
     db.refresh(db_match)
     
