@@ -1,106 +1,75 @@
 import 'package:flutter/material.dart';
-import 'package:myfc_app/models/match.dart';
 import 'package:myfc_app/config/theme.dart';
+import 'package:myfc_app/models/match.dart';
+import 'package:myfc_app/widgets/common/app_card.dart';
 
-class MatchCard extends StatelessWidget {
-  final int id;
-  final String date;
-  final String opponent;
-  final String score;
-  final MatchResult? result;
-  final VoidCallback? onTap;
-  final VoidCallback? onDelete;
+class MatchCardItem extends StatelessWidget {
+  final Match match;
   final String? teamName;
   final String? teamLogoUrl;
   final String? opponentLogoUrl;
+  final VoidCallback? onTap;
+  final bool showDate;
 
-  const MatchCard({
-    super.key,
-    required this.id,
-    required this.date,
-    required this.opponent,
-    required this.score,
-    this.result,
-    this.onTap,
-    this.onDelete,
+  const MatchCardItem({
+    Key? key,
+    required this.match,
     this.teamName = 'FC UBUNTU',
     this.teamLogoUrl,
     this.opponentLogoUrl,
-  });
-
-  Color _getResultColor() {
-    if (result == null) return AppColors.warning;
-    switch (result!) {
-      case MatchResult.win:
-        return AppColors.success;
-      case MatchResult.lose:
-        return AppColors.error;
-      case MatchResult.draw:
-        return AppColors.warning;
-    }
-  }
-
-  String _getResultText() {
-    if (result == null) return '무';
-    switch (result!) {
-      case MatchResult.win:
-        return '승';
-      case MatchResult.lose:
-        return '패';
-      case MatchResult.draw:
-        return '무';
-    }
-  }
+    this.onTap,
+    this.showDate = true,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      color: AppColors.white,
-      child: InkWell(
+    final result = match.getResultEnum();
+    String onlyDate = match.date.contains('T') 
+        ? match.date.split('T').first 
+        : match.date;
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppCard(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Date and result
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    date,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.neutral,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getResultColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      _getResultText(),
+              // Date and result row
+              if (showDate)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      onlyDate,
                       style: AppTextStyles.bodyMedium.copyWith(
-                        color: _getResultColor(),
+                        color: AppColors.neutral,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getResultColor(result).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        match.getResult(),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: _getResultColor(result),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              if (showDate) 
+                const SizedBox(height: 16),
               
-              // Teams and score
+              // Teams and score row
               Row(
                 children: [
                   // Our team
@@ -124,7 +93,7 @@ class MatchCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      score,
+                      match.score,
                       style: AppTextStyles.displayMedium.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
@@ -139,7 +108,7 @@ class MatchCard extends StatelessWidget {
                         _buildTeamLogo(opponentLogoUrl),
                         const SizedBox(height: 8),
                         Text(
-                          opponent,
+                          match.opponent,
                           style: AppTextStyles.bodyMedium,
                           textAlign: TextAlign.center,
                           maxLines: 1,
@@ -156,7 +125,7 @@ class MatchCard extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildTeamLogo(String? logoUrl) {
     return Container(
       width: 50,
@@ -188,5 +157,16 @@ class MatchCard extends StatelessWidget {
               color: AppColors.neutral,
             ),
     );
+  }
+
+  Color _getResultColor(MatchResult result) {
+    switch (result) {
+      case MatchResult.win:
+        return AppColors.success;
+      case MatchResult.draw:
+        return AppColors.warning;
+      case MatchResult.lose:
+        return AppColors.error;
+    }
   }
 } 

@@ -3,12 +3,14 @@ import 'package:intl/intl.dart';
 import 'package:myfc_app/config/routes.dart';
 import 'package:myfc_app/config/theme.dart';
 import 'package:myfc_app/models/match.dart';
+import 'package:myfc_app/models/team.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
 import 'package:myfc_app/widgets/common/app_button.dart';
 import 'package:myfc_app/widgets/common/app_card.dart';
+import 'package:myfc_app/widgets/match_card_item.dart';
 import 'package:myfc_app/widgets/widgets.dart';
 
 class MatchSummaryScreen extends StatefulWidget {
@@ -25,25 +27,79 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   
   List<Match> _matches = [];
   bool _isLoading = true;
+  Team? _team;
   
   @override
   void initState() {
     super.initState();
-    _loadMatches();
+    _loadTeamAndMatches();
   }
   
-  Future<void> _loadMatches() async {
+  Future<void> _loadTeamAndMatches() async {
     setState(() {
       _isLoading = true;
     });
     
+    try {
+      // Load team info
+      await _loadTeamInfo();
+      
+      // Load matches
+      await _loadMatches();
+    } catch (e) {
+      if (mounted) {
+        Helpers.showSnackBar(
+          context,
+          '데이터를 불러오는 데 실패했습니다.',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+  
+  Future<void> _loadTeamInfo() async {
+    try {
+      // First check cache
+      final cachedTeam = await _storageService.getCachedTeam();
+      
+      if (cachedTeam != null) {
+        setState(() {
+          _team = cachedTeam;
+        });
+      }
+      
+      // Then load from API
+      final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
+      if (teamId != null && token != null) {
+        final team = await _apiService.getTeam(teamId, token);
+        await _storageService.cacheTeam(team);
+        
+        if (mounted) {
+          setState(() {
+            _team = team;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading team info: $e');
+    }
+  }
+  
+  Future<void> _loadMatches() async {
     try {
       final cachedMatches = await _storageService.getCachedMatches();
       
       if (cachedMatches.isNotEmpty) {
         setState(() {
           _matches = cachedMatches;
-          _isLoading = false;
         });
       }
       
@@ -55,23 +111,20 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
         
         await _storageService.cacheMatches(matches);
         
-        setState(() {
-          _matches = matches;
-        });
+        if (mounted) {
+          setState(() {
+            _matches = matches;
+          });
+        }
       }
     } catch (e) {
+      print('Error loading matches: $e');
       if (mounted) {
         Helpers.showSnackBar(
           context,
           '경기 목록을 불러오는 데 실패했습니다.',
           isError: true,
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
@@ -143,7 +196,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                         onPressed: () => Navigator.pushNamed(
                           context,
                           AppRoutes.addMatchStep1,
-                        ).then((_) => _loadMatches()),
+                        ).then((_) => _loadTeamAndMatches()),
                       ),
                     ],
                   ),
@@ -153,7 +206,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                     children: [
                       Expanded(
                         child: RefreshIndicator(
-                          onRefresh: _loadMatches,
+                          onRefresh: _loadTeamAndMatches,
                           color: AppColors.primary,
                           child: ListView.builder(
                             padding: const EdgeInsets.all(16),
@@ -186,7 +239,7 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
                           onPressed: () => Navigator.pushNamed(
                             context,
                             AppRoutes.addMatchStep1,
-                          ).then((_) => _loadMatches()),
+                          ).then((_) => _loadTeamAndMatches()),
                         ),
                       ),
                     ],
@@ -196,73 +249,17 @@ class _MatchSummaryScreenState extends State<MatchSummaryScreen> {
   }
   
   Widget _buildMatchItem(Match match) {
-    final result = match.getResultEnum();
-    String onlyDate = match.date.contains('T') ? match.date.split('T').first : match.date;
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: AppCard(
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/match_detail',
-            arguments: match.id,
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    onlyDate,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.neutral,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getResultColor(result).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      match.getResult(),
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: _getResultColor(result),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      match.opponent,
-                      style: AppTextStyles.bodyLarge,
-                    ),
-                  ),
-                  Text(
-                    match.score,
-                    style: AppTextStyles.displaySmall.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    return MatchCardItem(
+      match: match,
+      teamName: _team?.name ?? 'FC UBUNTU',
+      teamLogoUrl: _team?.logoUrl,
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/match_detail',
+          arguments: match.id,
+        );
+      },
     );
   }
 

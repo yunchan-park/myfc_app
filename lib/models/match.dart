@@ -1,5 +1,4 @@
 import 'package:myfc_app/models/player.dart';
-import 'package:myfc_app/widgets/match_card.dart';
 import 'package:myfc_app/widgets/quarter_score_widget.dart';
 
 enum MatchResult {
