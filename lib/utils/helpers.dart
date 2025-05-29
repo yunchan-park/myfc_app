@@ -1,6 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:myfc_app/config/theme.dart';
 
 class Helpers {
   // Format date to YYYY-MM-DD
@@ -49,42 +49,27 @@ class Helpers {
     return grouped;
   }
 
-  // Show a snackbar
+  // Show a snackbar with consistent design
   static void showSnackBar(BuildContext context, String message, {bool isError = false}) {
-    // Material 스타일의 스낵바
-    if (Theme.of(context).platform == TargetPlatform.android) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: isError ? Colors.red : Colors.black,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } 
-    // Cupertino 스타일의 알림 (iOS)
-    else {
-      showCupertinoModalPopup(
-        context: context,
-        builder: (context) => CupertinoActionSheet(
-          message: Text(
-            message,
-            style: TextStyle(
-              color: isError ? CupertinoColors.destructiveRed : CupertinoColors.black,
-              fontSize: 16,
-            ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.white,
           ),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('확인'),
-            ),
-          ],
         ),
-      );
-    }
+        backgroundColor: isError ? AppColors.error : AppColors.darkGray,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
-  // Show confirmation dialog
+  // Show confirmation dialog with consistent design
   static Future<bool> showConfirmationDialog(
     BuildContext context, 
     String title, 
@@ -94,20 +79,29 @@ class Helpers {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Text(
+          title,
+          style: AppTextStyles.displayMedium,
+        ),
+        content: Text(
+          content,
+          style: AppTextStyles.bodyLarge,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.grey[800],
+              foregroundColor: AppColors.neutral,
             ),
             child: Text(cancelLabel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+              foregroundColor: AppColors.error,
             ),
             child: Text(confirmLabel),
           ),
@@ -118,16 +112,16 @@ class Helpers {
     return result ?? false;
   }
 
-  // Get color based on match result
+  // Get color based on match result using app colors
   static Color getResultColor(String result) {
     switch (result) {
       case '승':
-        return Colors.blue;
+        return AppColors.success;
       case '패':
-        return Colors.red;
+        return AppColors.error;
       case '무':
       default:
-        return Colors.grey;
+        return AppColors.warning;
     }
   }
 

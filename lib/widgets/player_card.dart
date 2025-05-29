@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myfc_app/config/theme.dart';
 
 class PlayerCard extends StatelessWidget {
   final String name;
@@ -27,65 +28,65 @@ class PlayerCard extends StatelessWidget {
           maxWidth: 100,
           maxHeight: 120,
         ),
-        child: Card(
-          elevation: isSelected ? 4 : 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(
-              color: isSelected ? Colors.black : Colors.transparent,
-              width: 2,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.border,
+              width: isSelected ? 2 : 1,
             ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Player number
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? Colors.black : Colors.grey[300],
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$number',
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? AppColors.primary 
+                      : AppColors.lightGray,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 12),
-                
-                // Player name
-                Flexible(
+                child: Center(
                   child: Text(
-                    name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    number.toString(),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: isSelected 
+                          ? AppColors.white 
+                          : AppColors.darkGray,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                
-                // Selected indicator
-                if (isSelected)
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.black,
-                    size: 16,
-                  ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                name,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: isSelected 
+                      ? AppColors.primary 
+                      : AppColors.darkGray,
+                  fontWeight: isSelected 
+                      ? FontWeight.w600 
+                      : FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
