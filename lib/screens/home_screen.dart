@@ -5,6 +5,7 @@ import 'package:myfc_app/models/team.dart';
 import 'package:myfc_app/screens/team_profile_screen.dart';
 import 'package:myfc_app/screens/player_management_screen.dart';
 import 'package:myfc_app/screens/match_summary_screen.dart';
+import 'package:myfc_app/screens/analytics_screen.dart';
 import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/services/storage_service.dart';
@@ -33,7 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _titles = [
     '구단 프로필',
     '선수 관리',
-    '매치 기록'
+    '매치 기록',
+    '팀 분석'
   ];
   
   Future<void> _logout() async {
@@ -185,6 +187,10 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.sports_soccer),
             label: '매치',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.analytics),
+            label: '분석',
+          ),
         ],
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -204,6 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return PlayerManagementScreen(key: playerManagementScreenKey);
       case 2:
         return const MatchSummaryScreen();
+      case 3:
+        return const AnalyticsScreen();
       default:
         return TeamProfileScreen(key: teamProfileScreenKey);
     }
@@ -261,6 +269,12 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _logout,
             ),
           ],
+        );
+      case 3:
+        return IconButton(
+          icon: const Icon(Icons.logout),
+          color: AppColors.neutral,
+          onPressed: _logout,
         );
       default:
         return IconButton(

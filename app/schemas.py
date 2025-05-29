@@ -135,6 +135,57 @@ class MatchDetail(Match):
 # 순환 참조 해결
 Goal.update_forward_refs()
 
+# Analytics schemas
+class TeamAnalyticsOverview(BaseModel):
+    total_matches: int
+    wins: int
+    draws: int
+    losses: int
+    win_rate: float
+    avg_goals_scored: float
+    avg_goals_conceded: float
+    highest_scoring_match: Dict[str, int]
+    most_conceded_match: Dict[str, int]
+
+class GoalRangeData(BaseModel):
+    goals: str
+    matches: int
+    wins: int
+    win_rate: float
+
+class GoalsWinCorrelation(BaseModel):
+    goal_ranges: List[GoalRangeData]
+    optimal_goals: int
+    avg_goals_for_win: float
+
+class ConcededRangeData(BaseModel):
+    conceded: str
+    matches: int
+    losses: int
+    loss_rate: float
+
+class ConcededLossCorrelation(BaseModel):
+    conceded_ranges: List[ConcededRangeData]
+    danger_threshold: int
+    avg_conceded_for_loss: float
+
+class PlayerContribution(BaseModel):
+    id: int
+    name: str
+    matches_played: int
+    wins: int
+    win_rate: float
+    goals: int
+    assists: int
+    mom_count: int
+    contribution_score: float
+    avg_goals_per_match: float
+
+class PlayerContributionsResponse(BaseModel):
+    players: List[PlayerContribution]
+    top_contributor: Dict[str, str]
+    most_reliable: Dict[str, str]
+
 # Token schemas
 class Token(BaseModel):
     access_token: str

@@ -12,6 +12,7 @@ import 'package:myfc_app/screens/add_match_step2_screen.dart';
 import 'package:myfc_app/screens/add_match_step3_screen.dart';
 import 'package:myfc_app/screens/add_match_step4_screen.dart';
 import 'package:myfc_app/screens/match_detail_screen.dart';
+import 'package:myfc_app/screens/analytics_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -28,6 +29,7 @@ class AppRoutes {
   static const String addMatchStep3 = '/add_match_step3';
   static const String addMatchStep4 = '/add_match_step4';
   static const String matchDetail = '/match_detail';
+  static const String analytics = '/analytics';
   
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -85,6 +87,8 @@ class AppRoutes {
             matchId: matchId,
           ),
         );
+      case analytics:
+        return MaterialPageRoute(builder: (_) => const AnalyticsScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(),

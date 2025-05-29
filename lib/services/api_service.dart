@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:myfc_app/models/match.dart';
 import 'package:myfc_app/models/player.dart';
 import 'package:myfc_app/models/team.dart';
+import 'package:myfc_app/models/analytics.dart';
 import 'package:myfc_app/services/storage_service.dart';
 
 class ApiService {
@@ -930,6 +931,59 @@ class ApiService {
       print('Error: $e');
       print('${'='*50}\n');
       rethrow;
+    }
+  }
+
+  // Analytics APIs
+  Future<TeamAnalyticsOverview> getTeamAnalyticsOverview(int teamId, String? token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/analytics/team/$teamId/overview'),
+      headers: _getAuthHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      return TeamAnalyticsOverview.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load team analytics overview: ${response.body}');
+    }
+  }
+
+  Future<GoalsWinCorrelation> getGoalsWinCorrelation(int teamId, String? token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/analytics/team/$teamId/goals-win-correlation'),
+      headers: _getAuthHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      return GoalsWinCorrelation.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load goals win correlation: ${response.body}');
+    }
+  }
+
+  Future<ConcededLossCorrelation> getConcededLossCorrelation(int teamId, String? token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/analytics/team/$teamId/conceded-loss-correlation'),
+      headers: _getAuthHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      return ConcededLossCorrelation.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load conceded loss correlation: ${response.body}');
+    }
+  }
+
+  Future<PlayerContributionsResponse> getPlayerContributions(int teamId, String? token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/analytics/team/$teamId/player-contributions'),
+      headers: _getAuthHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      return PlayerContributionsResponse.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load player contributions: ${response.body}');
     }
   }
 }

@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine
 from . import models
-from .routers import team, player, match
+from .routers import team, player, match, analytics
 import logging
 import time
 import json
@@ -97,6 +97,7 @@ async def add_process_time_header(request: Request, call_next):
 app.include_router(team.router)
 app.include_router(player.router)
 app.include_router(match.router)
+app.include_router(analytics.router)
 
 @app.get("/")
 def read_root():
