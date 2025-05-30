@@ -85,10 +85,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(
-          '팀 분석',
-          style: AppTextStyles.displayMedium,
-        ),
+        toolbarHeight: 0,
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.darkGray,
         elevation: 0,
@@ -112,7 +109,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 ],
               ),
       ),
-      body: _buildBody(),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 8),
+            color: AppColors.white,
+            child: Text(
+              '팀 분석',
+              style: AppTextStyles.displayLarge.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(child: _buildBody()),
+        ],
+      ),
     );
   }
 
