@@ -38,9 +38,9 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
   late TabController _tabController;
   List<Player> _players = [];
   bool _isLoading = true;
+  String _teamName = 'FC LINUX';
   
   Map<int, Map<String, int>> _quarterScores = {};
-  
   List<Map<String, dynamic>> _goals = [];
   
   @override
@@ -56,12 +56,31 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
     }
     
     _loadPlayers();
+    _loadTeamName();
   }
   
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+  
+  Future<void> _loadTeamName() async {
+    try {
+      final teamId = await _authService.getTeamId();
+      final token = await _authService.getToken();
+      
+      if (teamId != null) {
+        final team = await _apiService.getTeam(teamId, token);
+        if (mounted) {
+          setState(() {
+            _teamName = team.name;
+          });
+        }
+      }
+    } catch (e) {
+      // 팀 이름을 불러오지 못해도 기본값 사용
+    }
   }
   
   Future<void> _loadPlayers() async {
@@ -75,7 +94,6 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
       
       if (teamId != null) {
         final allPlayers = await _apiService.getTeamPlayers(teamId, token);
-        
         final selectedPlayers = allPlayers.where(
           (player) => widget.playerIds.contains(player.id)
         ).toList();
@@ -103,41 +121,68 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
     }
   }
   
-  void _addOurScore(int quarter) {
-    _showScoreDialog(quarter, true);
+  void _addGoal() {
+    final currentQuarter = _tabController.index + 1;
+    _showGoalDialog(currentQuarter);
   }
   
-  void _addOpponentScore(int quarter) {
+  void _addOpponentScore() {
+    final currentQuarter = _tabController.index + 1;
     setState(() {
-      _quarterScores[quarter]!['opponent_score'] = _quarterScores[quarter]!['opponent_score']! + 1;
+      _quarterScores[currentQuarter]!['opponent_score'] = 
+          _quarterScores[currentQuarter]!['opponent_score']! + 1;
     });
   }
   
-  void _showScoreDialog(int quarter, bool isOurTeam) {
-    if (isOurTeam) {
-      showDialog(
-        context: context,
-        builder: (context) => _buildScoreDialog(quarter),
-      );
-    } else {
-      _addOpponentScore(quarter);
+  void _removeGoal() {
+    final currentQuarter = _tabController.index + 1;
+    if (_quarterScores[currentQuarter]!['our_score']! > 0) {
+      setState(() {
+        _quarterScores[currentQuarter]!['our_score'] = 
+            _quarterScores[currentQuarter]!['our_score']! - 1;
+        
+        // 해당 쿼터의 마지막 골 기록 제거
+        final quarterGoals = _goals.where((goal) => goal['quarter'] == currentQuarter).toList();
+        if (quarterGoals.isNotEmpty) {
+          _goals.remove(quarterGoals.last);
+        }
+      });
     }
   }
   
-  Widget _buildScoreDialog(int quarter) {
+  void _removeOpponentScore() {
+    final currentQuarter = _tabController.index + 1;
+    if (_quarterScores[currentQuarter]!['opponent_score']! > 0) {
+      setState(() {
+        _quarterScores[currentQuarter]!['opponent_score'] = 
+            _quarterScores[currentQuarter]!['opponent_score']! - 1;
+      });
+    }
+  }
+  
+  void _showGoalDialog(int quarter) {
+    showDialog(
+      context: context,
+      builder: (context) => _buildGoalDialog(quarter),
+    );
+  }
+  
+  Widget _buildGoalDialog(int quarter) {
     int? selectedPlayerId;
     int? selectedAssistPlayerId;
     
     return StatefulBuilder(
-      builder: (context, setState) {
+      builder: (context, setDialogState) {
         return AlertDialog(
           backgroundColor: AppColors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            '득점 정보',
-            style: AppTextStyles.displayLarge,
+            '${quarter}쿼터 득점 기록',
+            style: AppTextStyles.displayMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -145,54 +190,93 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
             children: [
               Text(
                 '득점 선수',
-                style: AppTextStyles.bodyMedium,
+                style: AppTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: '득점 선수를 선택해주세요',
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                items: _players.map((player) {
-                  return DropdownMenuItem<int>(
-                    value: player.id,
-                    child: Text('${player.number}. ${player.name}'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedPlayerId = value;
-                  });
-                },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: selectedPlayerId,
+                    hint: Text(
+                      '득점 선수를 선택해주세요',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.neutral,
+                      ),
+                    ),
+                    isExpanded: true,
+                    items: _players.map((player) {
+                      return DropdownMenuItem<int>(
+                        value: player.id,
+                        child: Text('${player.number}. ${player.name}'),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedPlayerId = value;
+                      });
+                    },
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               Text(
-                '어시스트 선수 (선택)',
-                style: AppTextStyles.bodyMedium,
+                '어시스트 선수 (선택사항)',
+                style: AppTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<int?>(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: '어시스트 선수를 선택해주세요',
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                items: [
-                  const DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text('없음'),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int?>(
+                    value: selectedAssistPlayerId,
+                    hint: Text(
+                      '어시스트 선수를 선택해주세요',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.neutral,
+                      ),
+                    ),
+                    isExpanded: true,
+                    items: [
+                      DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text(
+                          '없음',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.neutral,
+                          ),
+                        ),
+                      ),
+                      ..._players
+                          .where((player) => player.id != selectedPlayerId)
+                          .map((player) {
+                        return DropdownMenuItem<int?>(
+                          value: player.id,
+                          child: Text('${player.number}. ${player.name}'),
+                        );
+                      }).toList(),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedAssistPlayerId = value;
+                      });
+                    },
                   ),
-                  ..._players.map((player) {
-                    return DropdownMenuItem<int?>(
-                      value: player.id,
-                      child: Text('${player.number}. ${player.name}'),
-                    );
-                  }).toList(),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    selectedAssistPlayerId = value;
-                  });
-                },
+                ),
               ),
             ],
           ),
@@ -206,30 +290,32 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
                 ),
               ),
             ),
-            AppButton(
-              text: '확인',
-              onPressed: () {
-                if (selectedPlayerId != null) {
-                  _registerGoal(quarter, selectedPlayerId!, selectedAssistPlayerId);
-                  Navigator.pop(context);
-                } else {
-                  Helpers.showSnackBar(
-                    context,
-                    '득점 선수를 선택해주세요.',
-                    isError: true,
-                  );
-                }
-              },
+            ElevatedButton(
+              onPressed: selectedPlayerId != null
+                  ? () {
+                      _registerGoal(quarter, selectedPlayerId!, selectedAssistPlayerId);
+                      Navigator.pop(context);
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('확인'),
             ),
           ],
         );
-      }
+      },
     );
   }
   
   void _registerGoal(int quarter, int playerId, int? assistPlayerId) {
     setState(() {
-      _quarterScores[quarter]!['our_score'] = _quarterScores[quarter]!['our_score']! + 1;
+      _quarterScores[quarter]!['our_score'] = 
+          _quarterScores[quarter]!['our_score']! + 1;
       
       _goals.add({
         'quarter': quarter,
@@ -273,357 +359,479 @@ class _AddMatchStep3ScreenState extends State<AddMatchStep3Screen> with SingleTi
         elevation: 0,
         centerTitle: true,
         title: Text(
-          '매치 추가',
-          style: AppTextStyles.displaySmall,
+          '매치 등록',
+          style: AppTextStyles.displaySmall.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColors.darkGray),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: _isLoading
           ? Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
-          : _buildContent(),
-    );
-  }
-  
-  Widget _buildContent() {
-    return Column(
-      children: [
-        _buildStepIndicator(),
-        Expanded(
-          child: DefaultTabController(
-            length: widget.quarters,
-            child: Column(
+          : Column(
               children: [
-                Container(
-                  color: AppColors.white,
-                  child: TabBar(
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.neutral,
-                    indicatorColor: AppColors.primary,
-                    tabs: List.generate(
-                      widget.quarters,
-                      (index) => Tab(
-                        text: '${index + 1}쿼터',
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: List.generate(
-                      widget.quarters,
-                      (index) => _buildQuarterContent(index + 1),
-                    ),
-                  ),
-                ),
+                _buildStepIndicator(),
+                _buildQuarterTabs(),
+                Expanded(child: _buildScoreContent()),
+                _buildBottomButton(),
               ],
             ),
-          ),
-        ),
-      ],
     );
   }
   
   Widget _buildStepIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       color: AppColors.white,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildStep(1, '기본 정보', true),
-          _buildStep(2, '선수 선택', true),
-          _buildStep(3, '점수 입력', false),
-          _buildStep(4, '확인', true),
+          _buildStepDot(1, false, true),
+          _buildStepLine(true),
+          _buildStepDot(2, false, true),
+          _buildStepLine(true),
+          _buildStepDot(3, true, false),
+          _buildStepLine(false),
+          _buildStepDot(4, false, false),
         ],
       ),
     );
   }
   
-  Widget _buildStep(int step, String label, bool isCompleted) {
-    final isCurrentStep = step == 3;
-    final color = isCurrentStep ? AppColors.primary : AppColors.neutral;
-
-    return Row(
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: isCurrentStep ? AppColors.primary : AppColors.white,
-            border: Border.all(
-              color: color,
-              width: 2,
-            ),
-            shape: BoxShape.circle,
-          ),
-          child: isCompleted
-              ? Icon(
-                  Icons.check,
-                  size: 16,
-                  color: isCurrentStep ? AppColors.white : color,
-                )
-              : Text(
-                  step.toString(),
+  Widget _buildStepDot(int step, bool isActive, bool isCompleted) {
+    Color backgroundColor = AppColors.white;
+    Color borderColor = AppColors.neutral;
+    Widget? child;
+    
+    if (isCompleted) {
+      backgroundColor = AppColors.primary;
+      borderColor = AppColors.primary;
+      child = Icon(Icons.check, size: 16, color: AppColors.white);
+    } else if (isActive) {
+      backgroundColor = AppColors.primary;
+      borderColor = AppColors.primary;
+      child = Text(
+        step.toString(),
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: AppColors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    } else {
+      child = Text(
+        step.toString(),
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: AppColors.neutral,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+    
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: 2),
+        shape: BoxShape.circle,
+      ),
+      child: Center(child: child),
+    );
+  }
+  
+  Widget _buildStepLine(bool isCompleted) {
+    return Container(
+      width: 32,
+      height: 2,
+      color: isCompleted ? AppColors.primary : AppColors.neutral,
+    );
+  }
+  
+  Widget _buildQuarterTabs() {
+    return Container(
+      color: AppColors.white,
+      child: TabBar(
+        controller: _tabController,
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.neutral,
+        indicatorColor: AppColors.primary,
+        indicatorWeight: 3,
+        tabs: List.generate(widget.quarters, (index) {
+          final quarter = index + 1;
+          final ourScore = _quarterScores[quarter]!['our_score']!;
+          final opponentScore = _quarterScores[quarter]!['opponent_score']!;
+          
+          return Tab(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${quarter}쿼터',
                   style: AppTextStyles.bodyMedium.copyWith(
-                    color: isCurrentStep ? AppColors.white : color,
+                    fontWeight: FontWeight.w600,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: color,
-          ),
-        ),
-        if (step < 4) ...[
-          const SizedBox(width: 8),
-          Container(
-            width: 24,
-            height: 2,
-            color: color,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ],
+                const SizedBox(height: 4),
+                Text(
+                  '$ourScore:$opponentScore',
+                  style: AppTextStyles.bodySmall,
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+  
+  Widget _buildScoreContent() {
+    return TabBarView(
+      controller: _tabController,
+      children: List.generate(widget.quarters, (index) {
+        final quarter = index + 1;
+        return _buildQuarterContent(quarter);
+      }),
     );
   }
   
   Widget _buildQuarterContent(int quarter) {
     final ourScore = _quarterScores[quarter]!['our_score']!;
     final opponentScore = _quarterScores[quarter]!['opponent_score']!;
+    final quarterGoals = _goals.where((goal) => goal['quarter'] == quarter).toList();
     
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildScoreInput(quarter),
-          const SizedBox(height: 24),
-          _buildGoalInput(quarter),
-          const SizedBox(height: 24),
-          AppButton(
-            onPressed: () => _goToNextStep(),
-            text: '다음',
+          // 팀명 vs 팀명
+          Text(
+            '$_teamName vs ${widget.opponent}',
+            style: AppTextStyles.displayMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.darkGray,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 24),
+          
+          // 대형 점수 표시
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxWidth < 400;
+                final scoreSize = isSmallScreen ? 48.0 : 56.0;
+                final buttonSize = isSmallScreen ? 24.0 : 28.0;
+                final spacing = isSmallScreen ? 8.0 : 16.0;
+                
+                return Column(
+                  children: [
+                    // 우리팀 점수
+                    _buildTeamScoreSection(
+                      teamName: _teamName,
+                      score: ourScore,
+                      color: AppColors.primary,
+                      label: '득점',
+                      onAdd: _addGoal,
+                      onRemove: ourScore > 0 ? _removeGoal : null,
+                      scoreSize: scoreSize,
+                      buttonSize: buttonSize,
+                      spacing: spacing,
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 구분선과 VS
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: AppColors.neutral)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'VS',
+                            style: AppTextStyles.bodyLarge.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.neutral,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: AppColors.neutral)),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 상대팀 점수
+                    _buildTeamScoreSection(
+                      teamName: widget.opponent,
+                      score: opponentScore,
+                      color: AppColors.error,
+                      label: '실점',
+                      onAdd: _addOpponentScore,
+                      onRemove: opponentScore > 0 ? _removeOpponentScore : null,
+                      scoreSize: scoreSize,
+                      buttonSize: buttonSize,
+                      spacing: spacing,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          // 득점 상세 기록 및 빠른 조정 버튼
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _addGoal,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.sports_soccer, size: 20),
+                      const SizedBox(height: 4),
+                      Text(
+                        '득점 기록',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: ourScore > 0 ? _removeGoal : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ourScore > 0 ? AppColors.error : AppColors.neutral,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.undo, size: 20),
+                      const SizedBox(height: 4),
+                      Text(
+                        '득점 취소',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // 득점 기록 리스트
+          if (quarterGoals.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${quarter}쿼터 득점 기록',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkGray,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...quarterGoals.map((goal) {
+                    final scorer = _players.firstWhere(
+                      (p) => p.id == goal['player_id'],
+                      orElse: () => Player(
+                        id: 0,
+                        name: '알 수 없음',
+                        position: 'Unknown',
+                        number: 0,
+                        teamId: 0,
+                      ),
+                    );
+                    
+                    final assister = goal['assist_player_id'] != null
+                        ? _players.firstWhere(
+                            (p) => p.id == goal['assist_player_id'],
+                            orElse: () => Player(
+                              id: 0,
+                              name: '알 수 없음',
+                              position: 'Unknown',
+                              number: 0,
+                              teamId: 0,
+                            ),
+                          )
+                        : null;
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.sports_soccer,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              assister != null
+                                  ? 'GOAL ${scorer.name} (${assister.name})'
+                                  : 'GOAL ${scorer.name}',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
   
-  Widget _buildScoreInput(int quarter) {
-    // 쿼터별 우리팀 득점 자동 계산
-    final ourScore = _goals.where((goal) => goal['quarter'] == quarter).length;
-    final opponentScore = _quarterScores[quarter]?['opponent_score'] ?? 0;
-
-    return AppCard(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTeamScoreSection({
+    required String teamName,
+    required int score,
+    required Color color,
+    required String label,
+    required VoidCallback onAdd,
+    required VoidCallback? onRemove,
+    required double scoreSize,
+    required double buttonSize,
+    required double spacing,
+  }) {
+    return Column(
+      children: [
+        Text(
+          teamName,
+          style: AppTextStyles.bodyLarge.copyWith(
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '점수',
-              style: AppTextStyles.displayLarge.copyWith(
-                color: AppColors.neutral,
+            // 감소 버튼
+            IconButton(
+              onPressed: onRemove,
+              icon: Icon(
+                Icons.remove_circle,
+                color: onRemove != null ? color : AppColors.neutral,
+                size: buttonSize,
+              ),
+              constraints: BoxConstraints(
+                minWidth: buttonSize + 16,
+                minHeight: buttonSize + 16,
+              ),
+              padding: EdgeInsets.all(spacing / 2),
+            ),
+            SizedBox(width: spacing),
+            // 점수 표시
+            Container(
+              constraints: const BoxConstraints(minWidth: 80),
+              child: Text(
+                score.toString(),
+                style: AppTextStyles.displayLarge.copyWith(
+                  fontSize: scoreSize,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '우리팀',
-                        style: AppTextStyles.bodyMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.neutral.withOpacity(0.2)),
-                        ),
-                        child: Text(
-                          ourScore.toString(),
-                          style: AppTextStyles.displayLarge.copyWith(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  ':',
-                  style: AppTextStyles.displayLarge.copyWith(
-                    color: AppColors.neutral,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '상대팀',
-                        style: AppTextStyles.bodyMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove),
-                            color: AppColors.primary,
-                            onPressed: () {
-                              setState(() {
-                                final current = _quarterScores[quarter]?['opponent_score'] ?? 0;
-                                _quarterScores[quarter] = {
-                                  'our_score': ourScore,
-                                  'opponent_score': current > 0 ? current - 1 : 0,
-                                };
-                              });
-                            },
-                          ),
-                          Container(
-                            width: 40,
-                            alignment: Alignment.center,
-                            child: Text(
-                              opponentScore.toString(),
-                              style: AppTextStyles.displayLarge.copyWith(
-                                color: AppColors.neutral,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add),
-                            color: AppColors.primary,
-                            onPressed: () {
-                              setState(() {
-                                final current = _quarterScores[quarter]?['opponent_score'] ?? 0;
-                                _quarterScores[quarter] = {
-                                  'our_score': ourScore,
-                                  'opponent_score': current + 1,
-                                };
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            SizedBox(width: spacing),
+            // 증가 버튼
+            IconButton(
+              onPressed: onAdd,
+              icon: Icon(
+                Icons.add_circle,
+                color: color,
+                size: buttonSize,
+              ),
+              constraints: BoxConstraints(
+                minWidth: buttonSize + 16,
+                minHeight: buttonSize + 16,
+              ),
+              padding: EdgeInsets.all(spacing / 2),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: color,
+          ),
+        ),
+      ],
     );
   }
   
-  Widget _buildGoalInput(int quarter) {
-    final quarterGoals = _goals.where((goal) => goal['quarter'] == quarter).toList();
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppButton(
-          text: '득점 추가',
-          onPressed: () => _showScoreDialog(quarter, true),
+  Widget _buildBottomButton() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: AppColors.white,
+      child: SafeArea(
+        child: AppButton(
+          onPressed: _goToNextStep,
+          text: '다음 단계로',
         ),
-        const SizedBox(height: 12),
-        if (quarterGoals.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.neutral.withOpacity(0.2),
-              ),
-            ),
-            child: Center(
-              child: Text(
-                '아직 득점 기록이 없습니다',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.neutral.withOpacity(0.5),
-                ),
-              ),
-            ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: quarterGoals.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final goal = quarterGoals[index];
-              final scorer = _players.firstWhere(
-                (player) => player.id == goal['player_id'],
-              );
-              final assistPlayer = goal['assist_player_id'] != null
-                  ? _players.firstWhere(
-                      (player) => player.id == goal['assist_player_id'],
-                    )
-                  : null;
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.neutral.withOpacity(0.2),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppColors.primary.withOpacity(0.1),
-                      child: Text(
-                        scorer.name[0],
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            scorer.name,
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              color: AppColors.neutral,
-                            ),
-                          ),
-                          if (assistPlayer != null)
-                            Text(
-                              '어시스트: ${assistPlayer.name}',
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.neutral.withOpacity(0.6),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-      ],
+      ),
     );
   }
 } 

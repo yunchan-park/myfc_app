@@ -6,7 +6,6 @@ import 'package:myfc_app/services/api_service.dart';
 import 'package:myfc_app/services/auth_service.dart';
 import 'package:myfc_app/utils/helpers.dart';
 import 'package:myfc_app/widgets/common/app_button.dart';
-import 'package:myfc_app/widgets/common/app_card.dart';
 
 class AddMatchStep2Screen extends StatefulWidget {
   final DateTime date;
@@ -115,219 +114,300 @@ class _AddMatchStep2ScreenState extends State<AddMatchStep2Screen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          '매치 추가',
-          style: AppTextStyles.displaySmall,
+          '매치 등록',
+          style: AppTextStyles.displaySmall.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColors.darkGray),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
-            )
-          : _buildContent(),
+      body: Column(
+        children: [
+          _buildStepIndicator(),
+          Expanded(
+            child: _isLoading
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  )
+                : _buildContent(),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStepIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      color: AppColors.white,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildStepDot(1, false, true),  // 완료된 단계
+          _buildStepLine(true),
+          _buildStepDot(2, true, false),  // 현재 단계
+          _buildStepLine(false),
+          _buildStepDot(3, false, false),
+          _buildStepLine(false),
+          _buildStepDot(4, false, false),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStepDot(int step, bool isActive, bool isCompleted) {
+    Color backgroundColor = AppColors.white;
+    Color borderColor = AppColors.neutral;
+    Color textColor = AppColors.neutral;
+    Widget? child;
+    
+    if (isCompleted) {
+      backgroundColor = AppColors.primary;
+      borderColor = AppColors.primary;
+      child = Icon(Icons.check, size: 16, color: AppColors.white);
+    } else if (isActive) {
+      backgroundColor = AppColors.primary;
+      borderColor = AppColors.primary;
+      textColor = AppColors.white;
+      child = Text(
+        step.toString(),
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    } else {
+      child = Text(
+        step.toString(),
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+    
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: 2),
+        shape: BoxShape.circle,
+      ),
+      child: Center(child: child),
+    );
+  }
+  
+  Widget _buildStepLine(bool isCompleted) {
+    return Container(
+      width: 32,
+      height: 2,
+      color: isCompleted ? AppColors.primary : AppColors.neutral,
     );
   }
   
   Widget _buildContent() {
     return Column(
       children: [
-        _buildStepIndicator(),
+        _buildHeader(),
         Expanded(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildPlayerSelection(),
-                  const SizedBox(height: 24),
-                  AppButton(
-                    onPressed: _selectedPlayerIds.isEmpty ? null : _goToNextStep,
-                    text: '다음',
-                  ),
-                ],
-              ),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: _buildPlayerGrid(),
           ),
         ),
+        _buildBottomButton(),
       ],
     );
   }
   
-  Widget _buildStepIndicator() {
+  Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       color: AppColors.white,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          _buildStep(1, '기본 정보', true),
-          _buildStep(2, '선수 선택', false),
-          _buildStep(3, '점수 입력', true),
-          _buildStep(4, '확인', true),
+          Text(
+            '경기에 참여하는 팀원을 모두 선택해주세요',
+            style: AppTextStyles.displayMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.darkGray,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '선택한 팀원: ${_selectedPlayerIds.length}명',
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
   
-  Widget _buildStep(int step, String label, bool isCompleted) {
-    final isCurrentStep = step == 2;
-    final color = isCurrentStep ? AppColors.primary : AppColors.neutral;
-
-    return Row(
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: isCurrentStep ? AppColors.primary : AppColors.white,
-            border: Border.all(
-              color: color,
-              width: 2,
-            ),
-            shape: BoxShape.circle,
-          ),
-          child: isCompleted
-              ? Icon(
-                  Icons.check,
-                  size: 16,
-                  color: isCurrentStep ? AppColors.white : color,
-                )
-              : Text(
-                  step.toString(),
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: isCurrentStep ? AppColors.white : color,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: color,
-          ),
-        ),
-        if (step < 4) ...[
-          const SizedBox(width: 8),
-          Container(
-            width: 24,
-            height: 2,
-            color: color,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ],
-    );
-  }
-  
-  Widget _buildPlayerSelection() {
+  Widget _buildPlayerGrid() {
     if (_players.isEmpty) {
-      return AppCard(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.person_outline,
-                  size: 48,
-                  color: AppColors.neutral.withOpacity(0.6),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  '등록된 선수가 없습니다',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: AppColors.neutral,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '선수 관리 화면에서 선수를 추가해주세요',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.neutral.withOpacity(0.6),
-                  ),
-                ),
-              ],
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_off,
+              size: 64,
+              color: AppColors.neutral,
             ),
-          ),
+            const SizedBox(height: 16),
+            Text(
+              '등록된 선수가 없습니다.',
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.neutral,
+              ),
+            ),
+          ],
         ),
       );
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '선수 선택',
-          style: AppTextStyles.displayLarge.copyWith(
-            color: AppColors.neutral,
+    
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.85,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: _players.length,
+      itemBuilder: (context, index) {
+        final player = _players[index];
+        final isSelected = _selectedPlayerIds.contains(player.id);
+        
+        return _buildPlayerCard(player, isSelected);
+      },
+    );
+  }
+  
+  Widget _buildPlayerCard(Player player, bool isSelected) {
+    return InkWell(
+      onTap: () => _togglePlayerSelection(player),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 2 : 1,
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '매치에 참여할 선수를 선택해주세요',
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.neutral.withOpacity(0.6),
-          ),
-        ),
-        const SizedBox(height: 24),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 1.5,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: _players.length,
-          itemBuilder: (context, index) {
-            final player = _players[index];
-            final isSelected = _selectedPlayerIds.contains(player.id);
-
-            return GestureDetector(
-              onTap: () => _togglePlayerSelection(player),
-              child: AppCard(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
-                    borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: isSelected
-                            ? AppColors.primary
-                            : AppColors.primary.withOpacity(0.1),
-                        child: Text(
-                          player.number.toString(),
-                          style: AppTextStyles.displayMedium.copyWith(
-                            color: isSelected ? AppColors.white : AppColors.primary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        player.name,
-                        style: AppTextStyles.bodyLarge.copyWith(
-                          color: AppColors.neutral,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                ]
+              : [
+                  BoxShadow(
+                    color: AppColors.neutral.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 선택 상태 표시
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : AppColors.white,
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.neutral,
+                  width: 2,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: isSelected
+                  ? Icon(
+                      Icons.check,
+                      size: 14,
+                      color: AppColors.white,
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            
+            // 등번호
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isSelected 
+                    ? AppColors.primary.withOpacity(0.1)
+                    : AppColors.background,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  player.number?.toString() ?? '?',
+                  style: AppTextStyles.displaySmall.copyWith(
+                    color: isSelected ? AppColors.primary : AppColors.darkGray,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            );
-          },
+            ),
+            const SizedBox(height: 8),
+            
+            // 선수 이름
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                player.name,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: isSelected ? AppColors.primary : AppColors.darkGray,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+  
+  Widget _buildBottomButton() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: AppColors.white,
+      child: SafeArea(
+        child: AppButton(
+          onPressed: _selectedPlayerIds.isNotEmpty ? _goToNextStep : null,
+          text: '다음 단계로 (${_selectedPlayerIds.length}명 선택)',
+        ),
+      ),
     );
   }
 } 

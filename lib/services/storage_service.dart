@@ -11,7 +11,12 @@ class StorageService {
   static const String playersCacheKey = 'players_cache_key';
   static const String matchesCacheKey = 'matches_cache_key';
 
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    webOptions: WebOptions(
+      dbName: 'myfc_app_secure_storage',
+      publicKey: 'myfc_app_public_key',
+    ),
+  );
 
   Future<void> cacheTeam(Team team) async {
     try {
