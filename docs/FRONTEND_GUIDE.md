@@ -389,15 +389,61 @@ class AnalyticsScreen extends StatefulWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            TeamStatsWidget(),           // 팀 전체 통계
-            PlayerStatsWidget(),        // 선수별 통계
-            MatchTrendsWidget(),        // 경기 트렌드
-            GoalsAnalysisWidget(),      // 득점 분석
+            TeamOverviewWidget(),        // 팀 전체 통계 개요
+            GoalsAnalysisWidget(),       // 득점/실점 패턴 분석
+            PlayerContributionsWidget(), // 선수별 기여도
+            TrendAnalysisWidget(),       // 추세 분석
           ],
         ),
       ),
     );
   }
+  
+  // API 호출 메서드들
+  Future<void> _loadTeamOverview() async {
+    final teamId = AuthService.currentTeamId;
+    final overview = await ApiService().getTeamAnalyticsOverview(teamId);
+    // 데이터 처리 및 상태 업데이트
+  }
+  
+  Future<void> _loadGoalsAnalysis() async {
+    final teamId = AuthService.currentTeamId;
+    final goalsWinCorrelation = await ApiService().getGoalsWinCorrelation(teamId);
+    final concededLossCorrelation = await ApiService().getConcededLossCorrelation(teamId);
+    // 데이터 처리 및 상태 업데이트
+  }
+  
+  Future<void> _loadPlayerContributions() async {
+    final teamId = AuthService.currentTeamId;
+    final contributions = await ApiService().getPlayerContributions(teamId);
+    // 데이터 처리 및 상태 업데이트
+  }
+}
+
+// 분석 위젯들
+class TeamOverviewWidget extends StatelessWidget {
+  // 팀 전체 통계 표시
+  // - 총 경기 수, 승/무/패
+  // - 평균 득점/실점
+  // - 최다 득점/실점 경기
+}
+
+class GoalsAnalysisWidget extends StatelessWidget {
+  // 득점/실점 패턴 분석
+  // - 득점-승률 상관관계 그래프
+  // - 실점-패배율 상관관계 그래프
+}
+
+class PlayerContributionsWidget extends StatelessWidget {
+  // 선수별 기여도 분석
+  // - 승리 기여도 순위
+  // - 득점/어시스트 효율성
+}
+
+class TrendAnalysisWidget extends StatelessWidget {
+  // 팀 성과 추세 분석
+  // - 최근 경기 성과 추이
+  // - 득점/실점 추세
 }
 ```
 

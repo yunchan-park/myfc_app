@@ -176,15 +176,22 @@ DELETE /matches/{match_id}         # 매치 삭제
 
 ```python
 # 엔드포인트
-GET /analytics/team/{team_id}       # 팀 통계
-GET /analytics/player/{player_id}   # 개별 선수 통계
-GET /analytics/goals/{team_id}      # 팀 득점 분석
+GET /analytics/team/{team_id}/overview        # 팀 전체 통계 개요
+GET /analytics/team/{team_id}/goals-win-correlation    # 득점-승률 상관관계
+GET /analytics/team/{team_id}/conceded-loss-correlation # 실점-패배율 상관관계
+GET /analytics/team/{team_id}/player-contributions     # 선수별 승리 기여도
 
-# 제공 통계
-- 승/무/패 기록
-- 총 득점/실점
-- 선수별 골/어시스트/MOM 횟수
-- 최근 경기 성과
+# 주요 기능
+- 팀 통계 개요
+  - 총 경기 수, 승/무/패 기록
+  - 평균 득점/실점
+  - 최다 득점/실점 경기
+- 득점/실점 패턴 분석
+  - 득점과 승리의 상관관계
+  - 실점과 패배의 상관관계
+- 선수 기여도 분석
+  - 선수별 승리 기여도
+  - 득점/어시스트 효율성
 ```
 
 ## 🔧 주요 기능 및 특징
