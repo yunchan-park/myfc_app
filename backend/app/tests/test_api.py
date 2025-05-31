@@ -1,5 +1,5 @@
 import pytest
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import sys
@@ -33,7 +33,7 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
-# FastAPI TestClient는 첫 번째 인자를 위치 인자로 받습니다
+# Starlette의 TestClient를 직접 사용
 client = TestClient(app)
 
 class TestTeamAPI:
