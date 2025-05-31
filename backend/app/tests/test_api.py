@@ -33,6 +33,7 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
+# FastAPI TestClient는 첫 번째 인자를 위치 인자로 받습니다
 client = TestClient(app)
 
 class TestTeamAPI:

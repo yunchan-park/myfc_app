@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine, event
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.engine import Engine
 import logging
 import time
@@ -29,6 +28,7 @@ SessionLocal = sessionmaker(
     expire_on_commit=False  # 커밋 후 객체 만료 비활성화로 성능 향상
 )
 
+# SQLAlchemy 2.0 호환 방식
 Base = declarative_base()
 
 # 쿼리 실행 시간 추적을 위한 이벤트 리스너
