@@ -13,10 +13,10 @@ from typing import Callable, AsyncGenerator
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Create database tables
+# 데이터 베이스 테이블 생성 (이미 존재하면 무시)
 models.Base.metadata.create_all(bind=engine)
 
-# CallableFactory 클래스 구현
+# CallableFactory 클래스 구현 (비동기 요청 처리를 위해)
 class CallableFactory:
     def __init__(self, body: bytes):
         self.body = body
@@ -30,10 +30,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# CORS 설정 (모든 출처 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],  # 프로덕션 환경에서는 특정 출처로 제한
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
