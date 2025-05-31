@@ -4,196 +4,39 @@
 #
 #    pip-compile requirements.in
 #
-aiofiles==23.2.1
-    # via -r requirements.in
-alembic==1.12.1
-    # via -r requirements.in
-annotated-types==0.7.0
-    # via pydantic
-anyio==4.7.0
-    # via
-    #   httpx
-    #   starlette
-    #   watchfiles
-authlib==1.6.0
-    # via safety
-backports-datetime-fromisoformat==2.0.3
-    # via marshmallow
-bandit[toml]==1.7.10
-    # via -r requirements.in
-bcrypt==4.2.1
-    # via passlib
-certifi==2024.12.14
-    # via
-    #   httpx
-    #   requests
-cffi==1.17.1
-    # via cryptography
-charset-normalizer==3.4.2
-    # via requests
-click==8.1.8
-    # via uvicorn
-coverage[toml]==7.6.9
-    # via pytest-cov
-cryptography==44.0.0
-    # via
-    #   passlib
-    #   python-jose
-dparse==0.6.4
-    # via
-    #   safety
-    #   safety-schemas
-ecdsa==0.19.0
-    # via python-jose
-exceptiongroup==1.2.2
-    # via
-    #   anyio
-    #   pytest
 fastapi==0.104.1
-    # via -r requirements.in
-filelock==3.16.1
-    # via safety
-h11==0.14.0
-    # via
-    #   httpcore
-    #   uvicorn
-httpcore==1.0.7
-    # via httpx
-httptools==0.6.4
-    # via uvicorn
-httpx==0.26.0
-    # via -r requirements.in
-idna==3.10
-    # via
-    #   anyio
-    #   httpx
-    #   requests
-iniconfig==2.0.0
-    # via pytest
-jinja2==3.1.6
-    # via safety
-joblib==1.5.1
-    # via nltk
-mako==1.3.8
-    # via alembic
-markdown-it-py==3.0.0
-    # via rich
-markupsafe==3.0.2
-    # via
-    #   jinja2
-    #   mako
-marshmallow==4.0.0
-    # via safety
-mdurl==0.1.2
-    # via markdown-it-py
-nltk==3.9.1
-    # via safety
-packaging==24.2
-    # via pytest
-passlib[bcrypt]==1.7.4
-    # via -r requirements.in
-pbr==6.1.0
-    # via stevedore
-pluggy==1.5.0
-    # via pytest
-psutil==6.1.1
-    # via safety
-pyasn1==0.6.1
-    # via python-jose
-pycparser==2.22
-    # via cffi
-pydantic==2.5.2
-    # via
-    #   -r requirements.in
-    #   fastapi
-pydantic-core==2.14.5
-    # via pydantic
-pygments==2.19.1
-    # via rich
-pytest==7.4.3
-    # via
-    #   -r requirements.in
-    #   pytest-asyncio
-    #   pytest-cov
-pytest-asyncio==0.21.1
-    # via -r requirements.in
-pytest-cov==4.0.0
-    # via -r requirements.in
-python-dotenv==1.0.0
-    # via -r requirements.in
-python-jose[cryptography]==3.3.0
-    # via -r requirements.in
-python-multipart==0.0.6
-    # via -r requirements.in
-pyyaml==6.0.2
-    # via bandit
-regex==2024.11.6
-    # via nltk
-requests==2.32.3
-    # via python-jose
-rich==14.0.0
-    # via
-    #   bandit
-    #   typer
-rsa==4.9
-    # via python-jose
-ruamel-yaml==0.18.12
-    # via
-    #   safety
-    #   safety-schemas
-ruamel-yaml-clib==0.2.12
-    # via ruamel-yaml
-safety==3.2.11
-    # via -r requirements.in
-safety-schemas==0.0.14
-    # via safety
-shellingham==1.5.4
-    # via typer
-six==1.16.0
-    # via python-jose
-sniffio==1.3.1
-    # via
-    #   anyio
-    #   httpx
-sqlalchemy==2.0.23
-    # via
-    #   -r requirements.in
-    #   alembic
-starlette==0.36.3
-    # via fastapi
-stevedore==5.4.0
-    # via bandit
-tenacity==9.1.2
-    # via safety
-tomli==2.2.1
-    # via
-    #   alembic
-    #   coverage
-    #   dparse
-    #   pytest
-    #   safety
-tomlkit==0.13.2
-    # via safety
-tqdm==4.67.1
-    # via nltk
-typer==0.16.0
-    # via safety
-typing-extensions==4.12.2
-    # via
-    #   fastapi
-    #   pydantic
-    #   pydantic-core
-    #   sqlalchemy
-urllib3==2.2.3
-    # via requests
 uvicorn[standard]==0.24.0
-    # via -r requirements.in
-uvloop==0.21.0
-    # via uvicorn
-watchfiles==1.0.0
-    # via uvicorn
-websockets==13.1
-    # via uvicorn
+sqlalchemy==2.0.23
+pydantic==2.5.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+alembic==1.12.1
+python-dotenv==1.0.0
+aiofiles==23.2.1
 
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
+# Dependencies for the above packages
+annotated-types==0.7.0
+anyio==4.7.0
+bcrypt==4.2.1
+certifi==2024.12.14
+cffi==1.17.1
+click==8.1.8
+cryptography==44.0.0
+ecdsa==0.19.0
+h11==0.14.0
+httptools==0.6.4
+idna==3.10
+mako==1.3.8
+markupsafe==3.0.2
+pyasn1==0.6.1
+pycparser==2.22
+pydantic-core==2.14.5
+rsa==4.9
+six==1.16.0
+sniffio==1.3.1
+starlette==0.36.3
+typing-extensions==4.12.2
+uvloop==0.21.0
+watchfiles==1.0.0
+websockets==13.1
