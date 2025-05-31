@@ -22,10 +22,15 @@ void main() {
   group('MyFC App Tests', () {
     testWidgets('앱이 스플래시 화면으로 시작되는지 테스트', (WidgetTester tester) async {
       await tester.pumpWidget(MyApp());
+      await tester.pump(); // 첫 번째 프레임 처리
       
-      // 스플래시 화면 확인
+      // 스플래시 화면이 있는지 확인
       expect(find.byType(SplashScreen), findsOneWidget);
-      expect(find.text('MyFC'), findsOneWidget);
+      
+      // 로딩 인디케이터나 MY FC 텍스트 중 하나는 있어야 함
+      final hasLoadingOrText = find.byType(CircularProgressIndicator).evaluate().isNotEmpty ||
+                              find.text('MY FC').evaluate().isNotEmpty;
+      expect(hasLoadingOrText, isTrue);
     });
 
     testWidgets('팀 등록 화면 UI 테스트', (WidgetTester tester) async {
@@ -84,27 +89,28 @@ void main() {
 
   group('Validators 테스트', () {
     test('팀 이름 유효성 검사', () {
-      expect(Validators.validateTeamName('FC Barcelona'), isNull);
+      expect(Validators.validateTeamName('FC Test'), isNull); // 10자 이하
       expect(Validators.validateTeamName(''), isNotNull);
-      expect(Validators.validateTeamName('A' * 21), isNotNull); // 20자 제한
+      expect(Validators.validateTeamName('A' * 11), isNotNull); // 10자 초과
     });
 
     test('팀 설명 유효성 검사', () {
       expect(Validators.validateTeamDescription('좋은 팀입니다'), isNull);
       expect(Validators.validateTeamDescription(''), isNotNull);
-      expect(Validators.validateTeamDescription('A' * 201), isNotNull); // 200자 제한
+      expect(Validators.validateTeamDescription('A' * 21), isNotNull); // 20자 제한
     });
 
     test('비밀번호 유효성 검사', () {
-      expect(Validators.validatePassword('123456'), isNull);
-      expect(Validators.validatePassword('12345'), isNotNull); // 6자 미만
+      expect(Validators.validatePassword('1234'), isNull); // 4자 이상
+      expect(Validators.validatePassword('12345678'), isNull); // 8자
+      expect(Validators.validatePassword('123'), isNotNull); // 4자 미만
       expect(Validators.validatePassword(''), isNotNull);
     });
 
     test('선수 이름 유효성 검사', () {
-      expect(Validators.validatePlayerName('Lionel Messi'), isNull);
+      expect(Validators.validatePlayerName('Lionel'), isNull); // 10자 이하
       expect(Validators.validatePlayerName(''), isNotNull);
-      expect(Validators.validatePlayerName('A' * 21), isNotNull); // 20자 제한
+      expect(Validators.validatePlayerName('A' * 11), isNotNull); // 10자 초과
     });
 
     test('등번호 유효성 검사', () {

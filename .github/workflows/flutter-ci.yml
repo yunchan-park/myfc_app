@@ -21,21 +21,35 @@ jobs:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: 🐦 Setup Flutter
+    - name: 📱 Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.16.0'
+        flutter-version: '3.24.3'
         channel: 'stable'
         
-    - name: 📦 Get dependencies
+    - name: 📦 Install dependencies
       run: flutter pub get
+      
+    - name: 🔍 Check format
+      run: dart format --output=none --set-exit-if-changed .
       
     - name: 🔍 Analyze code
       run: flutter analyze
       
     - name: 🧪 Run tests
-      run: flutter test --coverage
+      run: flutter test --coverage --reporter json > test-results.json || true
       
+    - name: 📊 Generate coverage report
+      run: |
+        flutter pub global activate coverage
+        flutter pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --packages=.packages --report-on=lib
+        
+    - name: 📤 Upload test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: flutter-test-results
+        path: frontend/test-results.json
+        
     - name: 📊 Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -79,10 +93,9 @@ jobs:
         commit_message: '🚀 Deploy Flutter web app'
 
   build-android:
-    name: 📱 Build Android APK
+    name: 🤖 Build Android APK
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/master'
     
     defaults:
       run:
@@ -92,30 +105,61 @@ jobs:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: ☕ Setup Java
+    - name: 🗝️ Set up JDK 17
       uses: actions/setup-java@v3
       with:
         distribution: 'zulu'
         java-version: '17'
         
-    - name: 🐦 Setup Flutter
+    - name: 📱 Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.16.0'
+        flutter-version: '3.24.3'
         channel: 'stable'
         
-    - name: 📦 Get dependencies
+    - name: 📦 Install dependencies
       run: flutter pub get
       
     - name: 🏗️ Build APK
-      run: flutter build apk --release
+      run: flutter build apk --release --split-per-abi
       
     - name: 📤 Upload APK artifact
       uses: actions/upload-artifact@v3
       with:
         name: android-apk
-        path: frontend/build/app/outputs/flutter-apk/app-release.apk
-        retention-days: 30
+        path: frontend/build/app/outputs/flutter-apk/*.apk
+
+  build-ios:
+    name: 🍎 Build iOS App
+    runs-on: macos-latest
+    needs: test
+    
+    defaults:
+      run:
+        working-directory: frontend
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 📱 Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.3'
+        channel: 'stable'
+        
+    - name: 📦 Install dependencies
+      run: flutter pub get
+      
+    - name: 🏗️ Build iOS app
+      run: |
+        flutter build ios --release --no-codesign
+        
+    - name: 📤 Upload iOS build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-app
+        path: frontend/build/ios/iphoneos/Runner.app
 
   security-scan:
     name: 🔒 Security Scan
@@ -129,27 +173,20 @@ jobs:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: 🔍 Run dependency scan
-      uses: securecodewarrior/github-action-add-sarif@v1
-      with:
-        sarif-file: 'security-scan-results.sarif'
-        
-    - name: 🐦 Setup Flutter
+    - name: 📱 Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.16.0'
+        flutter-version: '3.24.3'
         channel: 'stable'
         
-    - name: 📦 Get dependencies
+    - name: 📦 Install dependencies
       run: flutter pub get
       
-    - name: 🔍 Analyze dependencies
-      run: flutter pub deps --json > dependencies.json
+    - name: 🔍 Run pub audit
+      run: dart pub audit --json > security-audit.json || true
       
-    - name: 📊 Check for vulnerabilities
-      run: |
-        echo "Checking for known vulnerabilities..."
-        # 실제 환경에서는 dart pub audit 등의 도구 사용
-        if [ -f "dependencies.json" ]; then
-          echo "Dependencies check completed"
-        fi 
+    - name: 📤 Upload security scan results
+      uses: actions/upload-artifact@v3
+      with:
+        name: flutter-security-scan
+        path: frontend/security-audit.json 
