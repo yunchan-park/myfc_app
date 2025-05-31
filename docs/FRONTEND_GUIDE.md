@@ -248,27 +248,19 @@ class AuthService {
   static int? get currentTeamId => StorageService.getTeamId();
   
   // 로그인 처리
-  static Future<bool> login(String teamName, String password) async {
-    try {
-      final response = await ApiService().loginTeam({
-        'name': teamName,
-        'password': password,
-        'description': '',
-        'type': '',
-      });
-      
-      // 토큰과 팀 ID 저장
-      await StorageService.saveToken(response['access_token']);
-      await StorageService.saveTeamId(response['team_id']);
-      
-      return true;
-    } catch (e) {
-      return false;
-    }
+  Future<void> login(String teamName, String password) async {
+    final response = await ApiService().loginTeam({
+      'team_name': teamName,
+      'password': password,
+    });
+    
+    // 토큰 저장
+    await StorageService.setToken(response['token']);
+    await StorageService.setTeamId(response['team_id']);
   }
   
-  // 로그아웃 처리
-  static Future<void> logout() async {
+  // 로그아웃
+  Future<void> logout() async {
     await StorageService.clearAll();
   }
 }
@@ -277,32 +269,35 @@ class AuthService {
 #### `storage_service.dart` - 로컬 저장소 서비스
 ```dart
 class StorageService {
-  static const String _keyToken = 'auth_token';
-  static const String _keyTeamId = 'team_id';
-  static const String _keyTeamName = 'team_name';
+  static const String tokenKey = 'auth_token';
+  static const String teamIdKey = 'team_id';
   
   // 토큰 관리
-  static Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyToken, token);
+  static Future<void> setToken(String token) async {
+    await SharedPreferences.getInstance()
+      .then((prefs) => prefs.setString(tokenKey, token));
   }
   
   static String? getToken() {
-    // 동기적으로 토큰 반환
+    return SharedPreferences.getInstance()
+      .then((prefs) => prefs.getString(tokenKey));
   }
   
-  // 팀 정보 관리
-  static Future<void> saveTeamId(int teamId) async { ... }
-  static int? getTeamId() { ... }
+  // 팀 ID 관리
+  static Future<void> setTeamId(int teamId) async {
+    await SharedPreferences.getInstance()
+      .then((prefs) => prefs.setInt(teamIdKey, teamId));
+  }
   
-  // 캐시 데이터 관리
-  static Future<void> cacheTeamData(Team team) async { ... }
-  static Team? getCachedTeamData() { ... }
+  static int? getTeamId() {
+    return SharedPreferences.getInstance()
+      .then((prefs) => prefs.getInt(teamIdKey));
+  }
   
-  // 전체 데이터 삭제
+  // 모든 데이터 삭제
   static Future<void> clearAll() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await SharedPreferences.getInstance()
+      .then((prefs) => prefs.clear());
   }
 }
 ```
@@ -420,33 +415,30 @@ class AnalyticsScreen extends StatefulWidget {
 ```dart
 class AppButton extends StatelessWidget {
   final String text;
-  final VoidCallback? onPressed;
-  final Color? backgroundColor;
+  final VoidCallback onPressed;
   final bool isLoading;
-  final IconData? icon;
+  final ButtonType type;
   
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor ?? Colors.blue,
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      child: isLoading 
-        ? CircularProgressIndicator(color: Colors.white)
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) Icon(icon),
-              if (icon != null) SizedBox(width: 8),
-              Text(text),
-            ],
-          ),
+      style: _getButtonStyle(),
+      child: isLoading
+        ? CircularProgressIndicator()
+        : Text(text),
     );
+  }
+  
+  ButtonStyle _getButtonStyle() {
+    switch (type) {
+      case ButtonType.primary:
+        return ElevatedButton.styleFrom(primary: Colors.blue);
+      case ButtonType.secondary:
+        return ElevatedButton.styleFrom(primary: Colors.grey);
+      case ButtonType.danger:
+        return ElevatedButton.styleFrom(primary: Colors.red);
+    }
   }
 }
 ```
@@ -454,30 +446,22 @@ class AppButton extends StatelessWidget {
 #### `app_input.dart` - 커스텀 입력 필드
 ```dart
 class AppInput extends StatelessWidget {
-  final TextEditingController? controller;
+  final String label;
   final String? hint;
-  final String? label;
-  final bool obscureText;
+  final TextEditingController controller;
   final String? Function(String?)? validator;
-  final TextInputType? keyboardType;
-  final IconData? prefixIcon;
+  final bool obscureText;
   
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
       validator: validator,
+      obscureText: obscureText,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        filled: true,
-        fillColor: Colors.grey[50],
+        border: OutlineInputBorder(),
       ),
     );
   }
@@ -578,29 +562,36 @@ class PlayerCard extends StatelessWidget {
 #### `quarter_score_widget.dart` - 쿼터 점수 위젯
 ```dart
 class QuarterScoreWidget extends StatelessWidget {
-  final Map<int, QuarterScore> quarterScores;
-  final bool isEditable;
-  final Function(int quarter, QuarterScore score)? onScoreChanged;
+  final int quarter;
+  final int ourScore;
+  final int opponentScore;
+  final Function(int, int)? onScoreChanged;
   
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('쿼터별 점수', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          SizedBox(height: 12),
-          ...List.generate(4, (index) {
-            final quarter = index + 1;
-            final score = quarterScores[quarter] ?? QuarterScore(ourScore: 0, opponentScore: 0);
-            return _buildQuarterRow(quarter, score);
-          }),
-        ],
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            Text('${quarter}쿼터'),
+            Row(
+              children: [
+                _buildScoreInput(
+                  label: '우리 팀',
+                  value: ourScore,
+                  onChanged: (value) => onScoreChanged?.call(value, opponentScore),
+                ),
+                Text(':'),
+                _buildScoreInput(
+                  label: '상대 팀',
+                  value: opponentScore,
+                  onChanged: (value) => onScoreChanged?.call(ourScore, value),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

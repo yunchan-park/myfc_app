@@ -90,10 +90,8 @@ frontend/
 │       ├── constants.dart
 │       ├── validators.dart
 │       └── helpers.dart
-├── test/                         # 테스트 코드
-│   └── widget_test.dart
 ├── pubspec.yaml                  # Flutter 의존성
-└── run_tests.dart               # 테스트 실행 스크립트
+└── pubspec.lock                  # 의존성 잠금 파일
 ```
 
 ### 설계 원칙
@@ -135,16 +133,12 @@ backend/
 │   ├── database.py              # DB 설정
 │   ├── models.py                # SQLAlchemy 모델
 │   ├── auth.py                  # JWT 인증 로직
-│   ├── routers/                 # API 라우터
-│   │   ├── __init__.py
-│   │   ├── team.py             # 팀 관리 API
-│   │   ├── player.py           # 선수 관리 API
-│   │   └── match.py            # 매치 관리 API
-│   └── tests/                  # 테스트 코드
-│       └── test_api.py
+│   └── routers/                 # API 라우터
+│       ├── __init__.py
+│       ├── team.py             # 팀 관리 API
+│       ├── player.py           # 선수 관리 API
+│       └── match.py            # 매치 관리 API
 ├── requirements.txt             # Python 의존성
-├── pytest.ini                  # pytest 설정
-├── run_tests.py                # 테스트 실행 스크립트
 ├── venv/                       # Python 가상환경
 └── myfc.db                     # SQLite 데이터베이스
 ```
@@ -248,44 +242,49 @@ erDiagram
 - **아키텍처 정리**: 명확한 책임 분리 및 모듈화
 
 ### 📈 개발 경험 향상
-- **정적 분석 도구 활용**: `flutter analyze`를 통한 지속적인 코드 품질 관리
-- **자동화된 최적화**: 미사용 코드 자동 탐지 및 제거 프로세스
-- **문서화 개선**: 최신 아키텍처 변경사항 반영
+- **코드베이스 간소화**: 불필요한 파일 및 기능 제거
+- **직관적인 구조**: 명확한 디렉토리 구조와 파일 네이밍
+- **유지보수성 향상**: 코드 중복 제거 및 모듈화
 
-## 코드 품질 관리
+## 배포 아키텍처
 
-### 정적 분석 도구
-```bash
-# Flutter 코드 분석
-flutter analyze
-
-# Python 코드 린팅
-flake8 app/
-
-# 테스트 실행
-flutter test                    # Frontend
-python -m pytest app/tests/    # Backend
+### 프론트엔드 배포
+```
+Flutter Web Build → Static Files → Web Server
 ```
 
-### 지속적인 최적화 프로세스
-1. **정기적인 분석**: `flutter analyze` 실행으로 코드 품질 점검
-2. **미사용 코드 탐지**: 자동 도구를 통한 Dead Code 식별
-3. **성능 모니터링**: 앱 성능 및 빌드 시간 최적화
-4. **타입 안정성**: 강화된 타입 검사로 런타임 오류 방지
+### 백엔드 배포
+```
+FastAPI App → Gunicorn → Reverse Proxy → Internet
+```
 
-## 향후 아키텍처 계획
+### 데이터베이스
+```
+SQLite → Local File System
+```
 
-### 🔄 개발 중인 기능
-- 고급 통계 분석 (팀 전술 분석, 선수 히트맵)
-- 이미지 업로드 최적화
-- 팀원 권한 관리 시스템
-- 실시간 알림 시스템
+## 보안 아키텍처
 
-### 📊 성능 목표
-- 앱 시작 시간 30% 단축
-- 메모리 사용량 20% 감소
-- 코드 커버리지 85% 이상 유지
+### 인증 및 권한
+- JWT 토큰 기반 인증
+- 비밀번호 해싱 (bcrypt)
+- 토큰 만료 및 갱신 메커니즘
 
----
+### 데이터 보안
+- HTTPS 통신
+- 입력 데이터 검증
+- SQL Injection 방지 (ORM 사용)
 
-**이 아키텍처는 현대적인 소프트웨어 개발 원칙을 기반으로 설계되었으며, 지속적인 최적화를 통해 개발자 경험과 사용자 경험을 모두 향상시키고 있습니다.** 
+## 확장성 고려사항
+
+### 수평적 확장
+- 마이크로서비스로의 분리 가능성
+- 로드 밸런싱 지원 구조
+- 캐싱 레이어 추가 용이
+
+### 수직적 확장
+- 데이터베이스 마이그레이션 지원
+- 새로운 기능 모듈 추가 용이
+- API 버전 관리 가능
+
+--- 

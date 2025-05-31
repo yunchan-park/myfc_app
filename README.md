@@ -126,41 +126,6 @@ flutter run -d chrome --web-port 3000
 - `POST /matches/{match_id}/goals` - 골 기록 추가
 - `DELETE /matches/{match_id}` - 경기 삭제
 
-## 🧪 테스트
-
-### 전체 테스트 실행
-```bash
-# 백엔드 + 프론트엔드 테스트
-./run_all_tests.sh
-
-# 커버리지 포함
-./run_all_tests.sh --coverage
-```
-
-### 개별 테스트
-```bash
-# 백엔드만
-./run_all_tests.sh --backend-only
-
-# 프론트엔드만
-./run_all_tests.sh --frontend-only
-
-# 백엔드 상세 테스트
-cd backend && python run_tests.py --verbose
-
-# 프론트엔드 상세 테스트
-cd frontend && dart run_tests.dart --coverage
-```
-
-### 코드 품질 검사
-```bash
-# Flutter 분석
-cd frontend && flutter analyze
-
-# Python 린팅
-cd backend && flake8 app/
-```
-
 ## 🚀 배포
 
 ### 프론트엔드 웹 배포
@@ -189,7 +154,7 @@ docker-compose up -d
 
 - **[아키텍처 가이드](./docs/ARCHITECTURE.md)** - 시스템 설계 및 구조
 - **[디렉토리 구조](./docs/DIRECTORY_STRUCTURE.md)** - 프로젝트 파일 구조
-- **[테스트 가이드](./docs/TESTING.md)** - 테스트 실행 및 작성법
+- **[데이터 흐름](./docs/DATA_FLOW.md)** - 데이터 구조 및 흐름
 
 ## 💡 사용법
 
@@ -239,7 +204,6 @@ docker-compose up -d
 5. Pull Request를 생성합니다
 
 ### 개발 가이드라인
-- 코드 변경 시 관련 테스트도 함께 작성
 - 커밋 메시지는 명확하고 간결하게
 - Pull Request에는 변경사항 설명 포함
 - `flutter analyze` 통과 확인

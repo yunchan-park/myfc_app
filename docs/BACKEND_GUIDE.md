@@ -21,12 +21,8 @@ backend/
 │   │   ├── match.py           # 매치 관리 API
 │   │   └── analytics.py       # 통계 분석 API
 │   ├── services/               # 비즈니스 로직 서비스
-│   ├── utils/                  # 유틸리티 함수
-│   └── tests/                  # API 테스트
-│       └── test_api.py
+│   └── utils/                  # 유틸리티 함수
 ├── requirements.txt            # Python 의존성
-├── pytest.ini                 # pytest 설정
-├── run_tests.py               # 테스트 실행 스크립트
 ├── venv/                      # Python 가상환경
 └── myfc.db                    # SQLite 데이터베이스
 ```
@@ -233,78 +229,70 @@ class Team(Base):
     players = relationship("Player", back_populates="team")
 ```
 
-## 🧪 테스트 구조
+## 🚀 배포 가이드
 
-### `tests/test_api.py`
+### 1. **환경 설정**
+```bash
+# Python 가상환경 생성 및 활성화
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 의존성 설치
+pip install -r requirements.txt
+```
+
+### 2. **데이터베이스 초기화**
 ```python
-# 테스트 카테고리
-- TestTeamAPI: 팀 생성, 로그인, 조회
-- TestPlayerAPI: 선수 CRUD 작업
-- TestMatchAPI: 매치 등록 및 관리
-- TestGoalAPI: 골 기록 기능
-- TestValidation: 데이터 유효성 검증
-
-# 테스트 환경
-- 임시 SQLite 데이터베이스 사용
-- 각 테스트 독립 실행
-- JWT 토큰 기반 인증 테스트
+# database.py에서 자동으로 처리
+# 서버 첫 실행 시 테이블 자동 생성
 ```
 
-## 🚀 실행 및 개발
-
-### 개발 서버 실행
+### 3. **서버 실행**
 ```bash
-cd backend
-source venv/bin/activate
+# 개발 서버
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 프로덕션 서버
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
-### API 문서 확인
-```bash
-# Swagger UI
-http://localhost:8000/docs
-
-# ReDoc
-http://localhost:8000/redoc
-```
-
-### 테스트 실행
-```bash
-# 전체 테스트
-python run_tests.py
-
-# 특정 테스트
-pytest app/tests/test_api.py::TestTeamAPI -v
-```
-
-## 📦 의존성 관리
-
-### `requirements.txt`
-```
-fastapi==0.104.1          # 웹 프레임워크
-uvicorn==0.24.0           # ASGI 서버
-sqlalchemy==2.0.23        # ORM
-pydantic==2.5.2           # 데이터 검증
-python-jose[cryptography]  # JWT 토큰
-passlib[bcrypt]           # 비밀번호 해싱
-pytest==7.4.3            # 테스트 프레임워크
-httpx==0.25.2             # HTTP 클라이언트 (테스트용)
-```
+### 4. **API 문서 접근**
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
 ## 🔒 보안 고려사항
 
-1. **비밀번호 보안**: bcrypt 해싱 사용
-2. **JWT 토큰**: 24시간 만료, SECRET_KEY 보호
-3. **SQL Injection 방지**: SQLAlchemy ORM 사용
-4. **CORS 설정**: 허용된 도메인만 접근
-5. **입력 검증**: Pydantic 모델로 모든 입력 검증
+### 1. **인증 및 권한**
+- JWT 토큰 기반 인증
+- 비밀번호 bcrypt 해싱
+- 토큰 만료 시간 설정
+
+### 2. **데이터 보안**
+- 입력 데이터 검증
+- SQL Injection 방지 (ORM 사용)
+- CORS 설정
+
+### 3. **에러 처리**
+- 표준화된 에러 응답
+- 상세한 에러 메시지
+- 로깅 시스템
 
 ## 📈 성능 최적화
 
-1. **데이터베이스 인덱싱**: 주요 검색 필드에 인덱스 적용
-2. **쿼리 최적화**: SQLAlchemy의 lazy loading 활용
-3. **비동기 처리**: FastAPI의 async/await 지원
-4. **응답 캐싱**: 정적 데이터의 캐싱 전략
+### 1. **데이터베이스**
+- 인덱스 최적화
+- 관계 설정 최적화
+- 쿼리 성능 개선
+
+### 2. **API 응답**
+- 응답 데이터 최적화
+- 캐싱 전략
+- 비동기 처리
+
+### 3. **리소스 관리**
+- 커넥션 풀링
+- 메모리 사용 최적화
+- 백그라운드 작업 관리
 
 ---
 
