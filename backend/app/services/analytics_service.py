@@ -226,10 +226,9 @@ class AnalyticsService:
             wins = sum(1 for match in matches_played if self._get_match_result(match.score) == 'WIN')
             win_rate = (wins / matches_count * 100) if matches_count > 0 else 0.0
             
-            # 기여도 점수 계산 (골*2 + 어시스트 + MOM*3)
-            contribution_score = (player.goal_count * 2 + 
-                                 player.assist_count + 
-                                 player.mom_count * 3)
+            # 기여도 점수 계산 (승률 * (골*4 + 어시스트*2) * (MOM+1))
+            contribution_score = (win_rate / 100) * (player.goal_count * 4 + 
+                                                   player.assist_count * 2) * (player.mom_count + 1)
             
             avg_goals_per_match = player.goal_count / matches_count if matches_count > 0 else 0.0
             
