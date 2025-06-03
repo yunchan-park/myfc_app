@@ -7,13 +7,9 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-import logging
 from . import models, schemas
 from .database import get_db
 import time
-
-# 로깅 설정
-logger = logging.getLogger(__name__)
 
 # Security configuration
 SECRET_KEY = "your-secret-key-here"  # In production, use environment variable
@@ -28,24 +24,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         start_time = time.time()
         result = pwd_context.verify(plain_password, hashed_password)
-        elapsed = time.time() - start_time
-        if elapsed > 1.0:
-            logger.warning(f"비밀번호 검증에 {elapsed:.3f}초가 소요되었습니다")
         return result
     except Exception as e:
-        logger.error(f"비밀번호 검증 중 오류: {str(e)}")
         return False
 
 def get_password_hash(password: str) -> str:
     try:
         start_time = time.time()
         hashed_password = pwd_context.hash(password)
-        elapsed = time.time() - start_time
-        if elapsed > 1.0:
-            logger.warning(f"비밀번호 해싱에 {elapsed:.3f}초가 소요되었습니다")
         return hashed_password
     except Exception as e:
-        logger.error(f"비밀번호 해싱 중 오류: {str(e)}")
         raise
 
 # 비동기 버전의 비밀번호 해싱 (별도 스레드에서 실행)

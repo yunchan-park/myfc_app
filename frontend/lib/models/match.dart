@@ -162,6 +162,8 @@ class Goal {
   final int? assistPlayerId;
   final Player? player;  // 득점자 선수 객체
   final Player? assistPlayer;  // 어시스트 선수 객체
+  final String? scorerName;  // 득점자 이름 스냅샷
+  final String? assistName;  // 어시스트 이름 스냅샷
 
   Goal({
     required this.id,
@@ -170,6 +172,8 @@ class Goal {
     this.assistPlayerId,
     this.player,
     this.assistPlayer,
+    this.scorerName,
+    this.assistName,
   });
 
   factory Goal.fromJson(Map<String, dynamic> json) {
@@ -202,6 +206,8 @@ class Goal {
       assistPlayerId: json['assist_player_id'],
       player: player,
       assistPlayer: assistPlayer,
+      scorerName: json['scorer_name'],
+      assistName: json['assist_name'],
     );
   }
 

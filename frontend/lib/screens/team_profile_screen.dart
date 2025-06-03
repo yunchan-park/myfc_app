@@ -126,10 +126,9 @@ class TeamProfileScreenState extends State<TeamProfileScreen> {
       final teamId = await _authService.getTeamId();
       final token = await _authService.getToken();
       if (teamId != null && token != null) {
-        final matches = await _apiService.getTeamMatches(teamId, token);
-        final recent = matches.take(limit).toList();
+        final matches = await _apiService.getRecentMatches(teamId, token, limit: limit);
         List<Match> detailed = [];
-        for (var match in recent) {
+        for (var match in matches) {
           final detail = await _apiService.getMatchDetail(match.id, token);
           detailed.add(detail);
         }
@@ -645,7 +644,9 @@ class MatchCardBanner extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 ...goals.map((goal) => Text(
-                                  goal.player?.name ?? '',
+                                  goal.player?.name?.isNotEmpty == true
+                                    ? goal.player!.name
+                                    : (goal.scorerName ?? ''),
                                   style: const TextStyle(
                                     color: Color(0xFFE5E7EB),
                                     fontSize: 14,
@@ -666,9 +667,11 @@ class MatchCardBanner extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                ...goals.where((goal) => goal.assistPlayer != null)
+                                ...goals.where((goal) => goal.assistPlayer != null || (goal.assistName != null && goal.assistName!.isNotEmpty))
                                     .map((goal) => Text(
-                                  goal.assistPlayer!.name,
+                                  goal.assistPlayer?.name?.isNotEmpty == true
+                                    ? goal.assistPlayer!.name
+                                    : (goal.assistName ?? ''),
                                   style: const TextStyle(
                                     color: Color(0xFFE5E7EB),
                                     fontSize: 14,

@@ -1,8 +1,198 @@
-# MyFC 아키텍처 문서 🏗️
+# MyFC 시스템 아키텍처 문서 🏗️
 
-## 시스템 개요
+## 1. 시스템 구성요소
 
-MyFC는 Flutter 클라이언트와 FastAPI 서버로 구성된 축구 클럽 관리 애플리케이션입니다. 모던 웹/모바일 아키텍처를 채택하여 확장 가능하고 유지보수가 용이한 구조로 설계되었으며, 최근 대규모 코드 최적화를 통해 성능과 개발 경험이 크게 향상되었습니다.
+### 1.1 프론트엔드 (Flutter)
+- **역할**: 사용자 인터페이스 제공 및 사용자 상호작용 처리
+- **주요 모듈**:
+  - Screens: 사용자 화면 구현
+  - Widgets: 재사용 가능한 UI 컴포넌트
+  - Services: API 통신, 인증, 로컬 저장소 관리
+  - Models: 데이터 모델 정의
+
+### 1.2 백엔드 (FastAPI)
+- **역할**: 비즈니스 로직 처리 및 데이터 관리
+- **주요 모듈**:
+  - Routers: API 엔드포인트 정의
+  - Services: 비즈니스 로직 구현
+  - Models: 데이터베이스 모델 정의
+  - Auth: JWT 기반 인증 처리
+
+### 1.3 데이터베이스 (SQLite)
+- **역할**: 데이터 영구 저장
+- **주요 테이블**:
+  - teams: 팀 정보
+  - players: 선수 정보
+  - matches: 경기 정보
+  - goals: 골 기록
+
+## 2. 컴포넌트 간 통신 구조
+
+### 2.1 통신 방식
+- **REST API**: HTTP/HTTPS를 통한 JSON 기반 통신
+- **JWT**: 인증 토큰 기반 보안 통신
+
+### 2.2 주요 통신 흐름
+```
+[Client] <--HTTP/REST--> [API Gateway] <--Internal--> [Backend Services]
+   |                         |                           |
+   |                         |                           |
+[Local Storage]        [Authentication]              [Database]
+```
+
+## 3. 데이터 흐름 및 주요 엔드포인트
+
+### 3.1 인증 흐름
+```
+1. 팀 등록: POST /teams/create
+2. 로그인: POST /teams/login
+3. JWT 토큰 발급
+4. 이후 요청에 JWT 토큰 포함
+```
+
+### 3.2 주요 API 엔드포인트
+```
+팀 관리:
+- POST /teams/create
+- POST /teams/login
+- GET /teams/{team_id}
+- PUT /teams/{team_id}
+
+선수 관리:
+- POST /players/create
+- GET /players/team/{team_id}
+- PUT /players/{player_id}
+- DELETE /players/{player_id}
+
+경기 관리:
+- POST /matches/create
+- GET /matches/team/{team_id}
+- GET /matches/{match_id}/detail
+- POST /matches/{match_id}/goals
+
+분석:
+- GET /analytics/team/{team_id}/overview
+- GET /analytics/team/{team_id}/goals-win-correlation
+- GET /analytics/team/{team_id}/conceded-loss-correlation
+- GET /analytics/team/{team_id}/player-contributions
+```
+
+## 4. 계층 구조 및 책임 분리
+
+### 4.1 프론트엔드 계층
+```
+Presentation Layer (UI)
+├── Screens
+└── Widgets
+
+Business Layer
+├── Services
+└── Models
+
+Data Layer
+└── Local Storage
+```
+
+### 4.2 백엔드 계층
+```
+API Layer
+└── Routers
+
+Business Layer
+└── Services
+
+Data Access Layer
+└── Models (SQLAlchemy)
+```
+
+## 5. 기술 스택
+
+### 5.1 프론트엔드
+- **프레임워크**: Flutter
+- **상태관리**: Provider
+- **HTTP 클라이언트**: http
+- **로컬 저장소**: shared_preferences
+
+### 5.2 백엔드
+- **프레임워크**: FastAPI
+- **ORM**: SQLAlchemy
+- **데이터베이스**: SQLite
+- **인증**: JWT
+
+### 5.3 개발 도구
+- **버전 관리**: Git
+- **패키지 관리**: 
+  - Flutter: pub
+  - Python: pip
+
+## 6. 배포 및 실행 방식
+
+### 6.1 개발 환경
+```
+프론트엔드:
+flutter run -d chrome --web-port 3000
+
+백엔드:
+uvicorn app.main:app --reload --port 8000
+```
+
+### 6.2 프로덕션 환경
+```
+프론트엔드:
+flutter build web --release
+
+백엔드:
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+```
+
+## 시스템 아키텍처 다이어그램
+
+```
+[Client Layer]
+    Flutter App
+        │
+        ├── Local Storage
+        │       │
+        │       └── Shared Preferences
+        │
+        └── HTTP Client
+                │
+                └── JWT Auth
+
+[API Layer]
+    FastAPI Server
+        │
+        ├── Authentication
+        │       │
+        │       └── JWT Validation
+        │
+        ├── Team Service
+        │       │
+        │       └── Team Management
+        │
+        ├── Player Service
+        │       │
+        │       └── Player Management
+        │
+        ├── Match Service
+        │       │
+        │       └── Match Management
+        │
+        └── Analytics Service
+                │
+                └── Data Analysis
+
+[Data Layer]
+    SQLite Database
+        │
+        ├── Teams Table
+        │
+        ├── Players Table
+        │
+        ├── Matches Table
+        │
+        └── Goals Table
+```
 
 ## 전체 아키텍처
 

@@ -249,11 +249,11 @@ class AuthService {
   
   // 로그인 처리
   Future<void> login(String teamName, String password) async {
-    final response = await ApiService().loginTeam({
+      final response = await ApiService().loginTeam({
       'team_name': teamName,
-      'password': password,
-    });
-    
+        'password': password,
+      });
+      
     // 토큰 저장
     await StorageService.setToken(response['token']);
     await StorageService.setTeamId(response['team_id']);
@@ -470,7 +470,7 @@ class AppButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: _getButtonStyle(),
-      child: isLoading
+      child: isLoading 
         ? CircularProgressIndicator()
         : Text(text),
     );
@@ -618,11 +618,11 @@ class QuarterScoreWidget extends StatelessWidget {
     return Card(
       child: Padding(
         padding: EdgeInsets.all(8.0),
-        child: Column(
+      child: Column(
           children: [
             Text('${quarter}쿼터'),
             Row(
-              children: [
+        children: [
                 _buildScoreInput(
                   label: '우리 팀',
                   value: ourScore,
@@ -634,7 +634,7 @@ class QuarterScoreWidget extends StatelessWidget {
                   value: opponentScore,
                   onChanged: (value) => onScoreChanged?.call(ourScore, value),
                 ),
-              ],
+        ],
             ),
           ],
         ),

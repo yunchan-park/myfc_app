@@ -119,12 +119,39 @@ class Match(MatchBase):
     updated_at: Optional[datetime] = None
 
 # MatchDetail 스키마 (상세 정보를 위한 확장)
-class MatchDetail(Match):
-    model_config = ConfigDict(from_attributes=True)
-    
-    goals: List[Goal] = []
-    quarter_scores: Dict[str, QuarterScore] = {}
-    players: List[Player] = []
+class PlayerDetail(BaseModel):
+    id: int
+    name: str
+    position: str
+    number: int
+    team_id: int
+    created_at: datetime
+
+class GoalDetail(BaseModel):
+    id: int
+    match_id: int
+    quarter: int
+    player_id: Optional[int]
+    assist_player_id: Optional[int]
+    scorer_name: Optional[str]
+    assist_name: Optional[str]
+    created_at: datetime
+
+class QuarterScoreDetail(BaseModel):
+    quarter: int
+    our_score: int
+    opponent_score: int
+
+class MatchDetail(BaseModel):
+    id: int
+    date: datetime
+    opponent: str
+    score: str
+    team_id: int
+    created_at: datetime
+    players: List[PlayerDetail]
+    goals: List[GoalDetail]
+    quarter_scores: Dict[str, QuarterScoreDetail]
 
 # 순환 참조 해결 (model_rebuild 사용)
 Goal.model_rebuild()

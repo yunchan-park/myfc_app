@@ -655,15 +655,15 @@ class _AddMatchStep4ScreenState extends State<AddMatchStep4Screen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'GOAL ${scorer.name}',
+                            'GOAL ' + (scorer.name.isNotEmpty ? scorer.name : (goal.scorerName ?? '')),
                             style: AppTextStyles.bodyLarge.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
                             ),
                           ),
-                          if (assister != null)
+                          if (assister != null || (goal.assistName != null && goal.assistName!.isNotEmpty))
                             Text(
-                              'Assist: ${assister.name}',
+                              'Assist: ' + (assister?.name.isNotEmpty == true ? assister!.name : (goal.assistName ?? '')),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.primary,
                               ),

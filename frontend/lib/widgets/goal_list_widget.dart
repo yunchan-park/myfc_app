@@ -89,14 +89,18 @@ class GoalListWidget extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: goal.player?.name ?? '',
+                    text: goal.player?.name?.isNotEmpty == true
+                      ? goal.player!.name
+                      : (goal.scorerName ?? ''),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (goal.assistPlayer?.name != null)
+                  if ((goal.assistPlayer?.name?.isNotEmpty == true) || (goal.assistName != null && goal.assistName!.isNotEmpty))
                     TextSpan(
-                      text: ' (${goal.assistPlayer!.name})',
+                      text: ' (' + (goal.assistPlayer?.name?.isNotEmpty == true
+                        ? goal.assistPlayer!.name
+                        : (goal.assistName ?? '')) + ')',
                       style: TextStyle(
                         color: Colors.grey[700],
                       ),

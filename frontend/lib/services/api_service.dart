@@ -903,4 +903,18 @@ class ApiService {
       throw Exception('Failed to load player contributions: ${response.body}');
     }
   }
+
+  Future<List<Match>> getRecentMatches(int teamId, String? token, {int limit = 5}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/matches/team/$teamId/recent'),
+      headers: _getAuthHeaders(token),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => Match.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load recent matches: \\${response.body}');
+    }
+  }
 }

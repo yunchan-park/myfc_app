@@ -229,6 +229,8 @@ class AnalyticsService:
             # 기여도 점수 계산 (승률 * (골*4 + 어시스트*2) * (MOM+1))
             contribution_score = (win_rate / 100) * (player.goal_count * 4 + 
                                                    player.assist_count * 2) * (player.mom_count + 1)
+            # 소수점 두자리 이하 버림
+            contribution_score = int(contribution_score * 100) / 100
             
             avg_goals_per_match = player.goal_count / matches_count if matches_count > 0 else 0.0
             

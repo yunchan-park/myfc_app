@@ -7,8 +7,8 @@ from .database import Base
 match_player = Table(
     'match_player',
     Base.metadata,
-    Column('match_id', Integer, ForeignKey('matches.id')),
-    Column('player_id', Integer, ForeignKey('players.id'))
+    Column('match_id', Integer, ForeignKey('matches.id', ondelete='CASCADE')),
+    Column('player_id', Integer, ForeignKey('players.id', ondelete='SET NULL'), nullable=True)
 )
 
 class Team(Base):
@@ -67,8 +67,8 @@ class Goal(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     match_id = Column(Integer, ForeignKey("matches.id"))
-    player_id = Column(Integer, ForeignKey("players.id"))
-    assist_player_id = Column(Integer, ForeignKey("players.id"), nullable=True)
+    player_id = Column(Integer, ForeignKey("players.id", ondelete="SET NULL"), nullable=True)
+    assist_player_id = Column(Integer, ForeignKey("players.id", ondelete="SET NULL"), nullable=True)
     quarter = Column(Integer)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
