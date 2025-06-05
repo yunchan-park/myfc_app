@@ -17,7 +17,7 @@ aiofiles==23.2.1
 
 # Dependencies for the above packages
 annotated-types==0.7.0
-anyio==4.7.0
+anyio>=3.7.1,<4.0.0
 bcrypt==4.2.1
 certifi==2024.12.14
 cffi==1.17.1
