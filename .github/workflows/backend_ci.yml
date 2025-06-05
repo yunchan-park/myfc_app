@@ -26,4 +26,4 @@ jobs:
         run: pip install --no-cache-dir -r backend/requirements.txt
 
       - name: Run tests
-        run: PYTHONPATH=. pytest backend/tests
+        run: PYTHONPATH=backend pytest backend/tests
