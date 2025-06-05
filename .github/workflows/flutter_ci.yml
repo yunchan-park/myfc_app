@@ -21,13 +21,15 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+        working-directory: frontend
 
       - name: Run tests
         run: flutter test --no-pub --coverage
+        working-directory: frontend
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          files: coverage/lcov.info
+          files: frontend/coverage/lcov.info
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} 
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
