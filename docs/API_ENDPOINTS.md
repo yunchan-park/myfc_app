@@ -1,9 +1,16 @@
-# MyFC API 엔드포인트 문서 📚
+# API_ENDPOINTS.md
 
-## 개요
-MyFC의 모든 API 엔드포인트를 정리한 문서입니다. 모든 엔드포인트는 JWT 토큰 기반 인증을 사용합니다.
+## 목적
+이 문서는 MyFC의 모든 API 엔드포인트를 정리합니다.
 
-## 팀 관리 API (`/teams`)
+## 구조
+- 팀 관리 API (/teams)
+- 선수 관리 API (/players)
+- 매치 관리 API (/matches)
+- 통계 분석 API (/analytics)
+
+## 사용법
+### 팀 관리 API (`/teams`)
 
 ### 팀 생성 및 인증
 ```
@@ -39,7 +46,7 @@ POST /teams/upload-image
 - Response: { message, file_path }
 ```
 
-## 선수 관리 API (`/players`)
+### 선수 관리 API (`/players`)
 
 ### 선수 등록 및 조회
 ```
@@ -74,7 +81,7 @@ DELETE /players/{player_id}
 - Response: { message }
 ```
 
-## 매치 관리 API (`/matches`)
+### 매치 관리 API (`/matches`)
 
 ### 매치 등록 및 조회
 ```
@@ -109,7 +116,7 @@ DELETE /matches/{match_id}
 - Response: { message }
 ```
 
-## 통계 분석 API (`/analytics`)
+### 통계 분석 API (`/analytics`)
 
 ### 팀 통계
 ```
@@ -194,4 +201,9 @@ Authorization: Bearer <access_token>
 목록 조회 API는 다음 쿼리 파라미터를 지원합니다:
 ```
 ?page=1&per_page=20
-``` 
+```
+
+## 관련 문서
+- PROJECT_DOCS_GUIDE.md
+- DATA_FLOW.md
+- BACKEND_GUIDE.md 
