@@ -65,19 +65,20 @@ flutter run  # 연결된 모바일 기기에서 실행
 
 ### ✅ 구현 완료
 - **팀 관리**: 팀 생성, 로그인, 프로필 관리, 팀 정보 수정
-- **선수 관리**: 선수 등록, 수정, 삭제, 통계 관리, 포지션별 관리
-- **경기 관리**: 경기 등록, 쿼터별 점수, 골 기록, 경기 삭제
-- **통계 대시보드**: 팀 성과, 선수별 통계, 득점왕/도움왕/MVP 시스템
-- **경기 상세 분석**: 쿼터별 점수 추적, 골 기록 상세 정보
+- **선수 관리**: 선수 등록, 수정, 삭제, 통계 관리
+- **경기 관리**: 경기 등록, 점수 기록, 골 기록, 경기 삭제
+- **통계 대시보드**: 팀 성과, 선수별 통계
 - **반응형 UI**: 모바일/웹 최적화된 사용자 인터페이스
 - **오프라인 지원**: 로컬 캐싱 및 동기화
 - **코드 최적화**: 불필요한 코드 제거로 성능 및 유지보수성 향상
 
 ### 🔄 개발 중
 - 경기 일정 관리
-- 고급 통계 분석 (팀 전술 분석, 선수 히트맵)
+- 고급 통계 분석
 - 팀원 권한 관리
-- 이미지 업로드 기능 (팀 로고, 선수 사진)
+- 이미지 업로드 기능
+- 쿼터별 점수 추적
+- MVP 시스템
 
 ### 🎯 최근 개선사항
 - **코드베이스 정리**: 58% 미사용 코드 제거 (33개 → 14개 항목)
@@ -106,25 +107,28 @@ flutter run -d chrome --web-port 3000
 ## 📚 API 엔드포인트
 
 ### 팀 관리
-- `POST /teams/create` - 팀 생성
+- `POST /teams/` - 팀 생성
 - `POST /teams/login` - 팀 로그인
 - `GET /teams/{team_id}` - 팀 정보 조회
 - `PUT /teams/{team_id}` - 팀 정보 수정
-- `POST /teams/{team_id}/logo` - 팀 로고 업로드
-- `POST /teams/{team_id}/image` - 팀 이미지 업로드
+- `DELETE /teams/{team_id}` - 팀 삭제
 
 ### 선수 관리
-- `POST /players/create` - 선수 등록
-- `GET /players/team/{team_id}` - 팀 선수 목록
+- `POST /players/` - 선수 등록
+- `GET /players/{player_id}` - 선수 정보 조회
 - `PUT /players/{player_id}` - 선수 정보 수정
 - `DELETE /players/{player_id}` - 선수 삭제
 
 ### 경기 관리
-- `POST /matches/create` - 경기 등록
-- `GET /matches/team/{team_id}` - 팀 경기 목록
-- `GET /matches/{match_id}/detail` - 경기 상세 정보
-- `POST /matches/{match_id}/goals` - 골 기록 추가
-- `DELETE /matches/{match_id}` - 경기 삭제
+- `POST /matches/` - 경기 등록
+- `GET /matches/{match_id}` - 경기 상세 조회
+- `PUT /matches/{match_id}/goals` - 득점 추가
+- `GET /matches/team/{team_id}` - 팀 경기 목록 조회
+
+### 분석 관련
+- `GET /analytics/team/{team_id}` - 팀 통계
+- `GET /analytics/player/{player_id}` - 선수 통계
+- `GET /analytics/matches/{team_id}` - 경기 분석
 
 ## 🚀 배포
 
@@ -138,8 +142,7 @@ flutter build web --release
 ### 백엔드 배포
 ```bash
 cd backend
-# 프로덕션 서버에서
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Docker 배포 (옵션)
@@ -315,7 +318,7 @@ MyFC 프로젝트의 보안은 매우 중요합니다.
 - 반복적인 방해, 무례한 행동
 
 ## 문제 발생 시
-- 행동 강령 위반 시 관리자(maintainer)에게 이메일(youremail@example.com)로 신고해 주세요.
+- 행동 강령 위반 시 관리자(maintainer)에게 이메일(yunchan1220@naver.com)로 신고해 주세요.
 - 관리자는 신속하고 공정하게 문제를 조사하고 대응합니다.
 - 필요 시 경고, 커뮤니티 퇴출 등 조치가 취해질 수 있습니다.
 
@@ -454,5 +457,3 @@ about: 새로운 기능을 제안하려면 이 템플릿을 사용하세요.
 3. `git add`, `git commit -m "docs: 커뮤니티 스탠다드 문서 구체화"`, `git push`로 업로드합니다.
 
 ---
-
-**원하시는 파일(또는 전체)을 위 예시처럼 구체적으로 생성해드릴까요? 필요한 파일명을 말씀해 주시면 바로 적용해드리겠습니다!**

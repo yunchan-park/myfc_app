@@ -14,7 +14,7 @@
 
 ### 팀 생성 및 인증
 ```
-POST /teams/create
+POST /teams/
 - 새로운 팀 생성
 - Request: { name, description, type, password }
 - Response: Team object
@@ -31,33 +31,24 @@ GET /teams/{team_id}
 - 팀 정보 조회
 - Response: Team object
 
+PUT /teams/{team_id}
+- 팀 정보 수정
+- Request: { name?, description?, type? }
+- Response: Team object
+
 DELETE /teams/{team_id}
 - 팀 삭제
 - Response: { message }
-
-POST /teams/upload-logo
-- 팀 로고 업로드
-- Request: multipart/form-data
-- Response: { message, file_path }
-
-POST /teams/upload-image
-- 팀 이미지 업로드
-- Request: multipart/form-data
-- Response: { message, file_path }
 ```
 
 ### 선수 관리 API (`/players`)
 
 ### 선수 등록 및 조회
 ```
-POST /players/create
+POST /players/
 - 새로운 선수 등록
 - Request: { name, position, number, team_id }
 - Response: Player object
-
-GET /players/team/{team_id}
-- 팀 선수 목록 조회
-- Response: Player[] array
 
 GET /players/{player_id}
 - 개별 선수 정보 조회
@@ -71,11 +62,6 @@ PUT /players/{player_id}
 - Request: { name?, position?, number? }
 - Response: Player object
 
-PUT /players/{player_id}/stats
-- 선수 통계 업데이트
-- Request: { goal_count?, assist_count?, mom_count? }
-- Response: Player object
-
 DELETE /players/{player_id}
 - 선수 삭제
 - Response: { message }
@@ -85,80 +71,56 @@ DELETE /players/{player_id}
 
 ### 매치 등록 및 조회
 ```
-POST /matches/create
+POST /matches/
 - 새로운 매치 등록
-- Request: { date, opponent, score, team_id, player_ids[], quarter_scores[] }
+- Request: { date, opponent, score, team_id, player_ids[] }
 - Response: Match object
+
+GET /matches/{match_id}
+- 매치 상세 정보 조회
+- Response: MatchDetail object
 
 GET /matches/team/{team_id}
 - 팀 매치 목록 조회
 - Response: Match[] array
-
-GET /matches/{match_id}/detail
-- 매치 상세 정보 조회
-- Response: MatchDetail object
 ```
 
 ### 매치 관리
 ```
-PUT /matches/{match_id}
-- 매치 정보 수정
-- Request: { date?, opponent?, score?, player_ids[]? }
-- Response: Match object
-
-POST /matches/{match_id}/goals
+PUT /matches/{match_id}/goals
 - 골 기록 추가
 - Request: { player_id, assist_player_id?, quarter }
 - Response: Goal object
-
-DELETE /matches/{match_id}
-- 매치 삭제
-- Response: { message }
 ```
 
 ### 통계 분석 API (`/analytics`)
 
 ### 팀 통계
 ```
-GET /analytics/team/{team_id}/overview
-- 팀 전체 통계 개요
+GET /analytics/team/{team_id}
+- 팀 전체 통계
 - Response: {
     total_matches,
     wins,
     draws,
     losses,
-    avg_goals_scored,
-    avg_goals_conceded,
-    highest_scoring_match,
-    highest_conceding_match
+    goals_scored,
+    goals_conceded
   }
 
-GET /analytics/team/{team_id}/goals-win-correlation
-- 득점-승률 상관관계 분석
+GET /analytics/player/{player_id}
+- 선수 통계
 - Response: {
-    goals_per_match: [number],
-    win_rate: [number],
-    correlation_coefficient
+    goals,
+    assists,
+    matches_played
   }
 
-GET /analytics/team/{team_id}/conceded-loss-correlation
-- 실점-패배율 상관관계 분석
+GET /analytics/matches/{team_id}
+- 경기 분석
 - Response: {
-    conceded_per_match: [number],
-    loss_rate: [number],
-    correlation_coefficient
-  }
-
-GET /analytics/team/{team_id}/player-contributions
-- 선수별 승리 기여도 분석
-- Response: {
-    player_contributions: [{
-      player_id,
-      name,
-      goals,
-      assists,
-      win_contribution_score
-    }]
+    recent_matches,
+    performance_trend
   }
 ```
 
@@ -195,13 +157,6 @@ Authorization: Bearer <access_token>
 - 403: 권한 없음
 - 404: 리소스 없음
 - 500: 서버 에러
-
-## 페이지네이션
-
-목록 조회 API는 다음 쿼리 파라미터를 지원합니다:
-```
-?page=1&per_page=20
-```
 
 ## 관련 문서
 - PROJECT_DOCS_GUIDE.md
