@@ -82,3 +82,85 @@ ENV/
 dist/
 build/
 *.egg
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Upload directories
+uploads/
+
+# Environment files
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE specific files
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+
+# macOS specific
+.AppleDouble
+.LSOverride
+._*
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Log files
+logs/
+*.log.*
+
+# Coverage reports
+coverage/
+.coverage.*
+
+# Mermaid diagram files
+*.mmd
+*.mermaid
+*.mermaid.png
+*.mermaid.svg
+mermaid-diagrams/
+diagrams/
+
+# Mermaid diagram files and images
+*.mmd
+*.mermaid
+*.mermaid.png
+*.mermaid.svg
+mermaid-diagrams/
+diagrams/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+*.eps
+*.ai
+*.psd
+*.tiff
+*.webp
+*.ico
+*.bmp
+
+# Submission directories
+submit/
+submission/
+submissions/
+*_submission/
+*_submit/
